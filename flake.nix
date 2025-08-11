@@ -36,28 +36,20 @@
                 ${pkgs.networkmanager}/bin/nmcli dev wifi connect "CODE_CRISPIES_GUEST" password "workshop2024" || true
               '';
             };
-
             services.getty.autologinUser = "workshop";
             users.users.workshop = { isNormalUser = true; shell = pkgs.zsh; };
-
             programs.zsh = {
               enable = true;
               interactiveShellInit = ''
                 echo "🍪 CODE CRISPIES Workshop Environment"
-                echo "💡 Commands: connect <name> | recipes | help"
                 connect() { ssh -o StrictHostKeyChecking=no workshop@$1.codecrispi.es; }
-                recipes() { echo "Featured Recipes: wordpress, nextcloud, gitea..."; }
-                help() { echo "Commands: connect, recipes, help"; }
               '';
             };
-            
             environment.systemPackages = with pkgs; [ openssh curl git networkmanager ];
             services.xserver = {
               enable = true;
-              displayManager.autoLogin.enable = true;
-              displayManager.autoLogin.user = "workshop";
+              displayManager.lightdm.enable = true;
               desktopManager.xfce.enable = true;
-              displayManager.sessionCommands = "${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal &";
             };
           })
         ];
@@ -68,21 +60,40 @@
     };
 
     # --------------------------------------------------------------------------------
-    # 2. LOCAL DEVELOPMENT VM CONFIGURATION
+    # 2. STANDALONE LOCAL DEVELOPMENT VM CONFIGURATION
     # --------------------------------------------------------------------------------
     nixosConfigurations.workshop-local = nixpkgs.lib.nixosSystem {
-      inherit system;
+      system = "x86_64-linux";
       modules = [
-        ( let hostname = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile "/etc/hostname");
-          in "/etc/nixos/hosts/${hostname}/configuration.nix" )
-
-        ({ config, ... }: {
+        ({ config, pkgs, ... }: {
           system.stateVersion = "25.05";
-          
-          # Use `gnumake` instead of `make`
+          boot.loader.grub.enable = false;
+          boot.loader.generic-extlinux-compatible.enable = true;
+
+          # Create a simple 'workshop' user with no password
+          users.users.workshop = {
+            isNormalUser = true;
+            extraGroups = [ "wheel" ]; # for sudo
+            password = "";
+          };
+          services.getty.autologinUser = "workshop";
+
+          # Enable a lightweight desktop environment guaranteed to work in a VM
+          services.xserver = {
+            enable = true;
+            displayManager.lightdm.enable = true;
+            desktopManager.xfce.enable = true;
+          };
+
+          # Allow empty passwords for login and sudo
+          security.pam.services.login.allowNullPassword = true;
+          security.sudo.wheelNeedsPassword = false;
+
+          networking.hostName = "workshop-vm";
           environment.systemPackages = with pkgs; [ gnumake nano nixos-container ];
 
-          containers = builtins.listToAttrs (map (i: 
+          # Define all participant containers
+          containers = builtins.listToAttrs (map (i:
             let participant = builtins.elemAt participantNames (i - 1);
             in {
               name = "participant${toString i}";
@@ -94,13 +105,14 @@
                 config = {
                   system.stateVersion = "25.05";
                   services.openssh.enable = true;
-                  # networking.hostName = "${participant}.local"; # <-- REMOVED this conflicting line
+                  networking.hostName = participant;
                   virtualisation.docker.enable = true;
                   environment.systemPackages = with pkgs; [ docker git curl jq ];
                   systemd.services.workshop-setup = {
                      wantedBy = [ "multi-user.target" ];
                      after = [ "docker.service" ];
                      script = ''
+                       # Docker Swarm and Abra setup
                        ${pkgs.docker}/bin/docker swarm init --advertise-addr 192.168.100.${toString (10 + i)} || true
                        ${pkgs.docker}/bin/docker network create -d overlay proxy || true
                        export HOME=/root
@@ -115,9 +127,10 @@
             }
           ) (nixpkgs.lib.range 1 2));
           
+          # DNS for containers
           services.dnsmasq = {
             enable = true;
-            settings.address = builtins.concatMap (i: 
+            settings.address = builtins.concatMap (i:
               let participant = builtins.elemAt participantNames (i - 1);
               in [
                 "/${participant}.local/192.168.100.${toString (10 + i)}"
