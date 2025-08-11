@@ -16,13 +16,13 @@ help:
 	@echo "  make local-vm-run    - Start the complete workshop environment in a VM"
 	@echo ""
 	@echo "--- Cloud Infrastructure ---"
-	@echo "  make cloud-deploy    - Deploy VMs to Hetzner"
-	@echo "  make cloud-status    - Check the status of cloud servers"
-	@echo "  make cloud-destroy   - Destroy all cloud infrastructure"
+	@echo "  make deploy-cloud    - Deploy VMs to Hetzner"
+	@echo "  make status-cloud    - Check the status of cloud servers"
+	@echo "  make destroy-cloud   - Destroy all cloud infrastructure"
 	@echo ""
 	@echo "--- USB Drive Creation ---"
-	@echo "  make usb-build       - Build the NixOS ISO for the workshop"
-	@echo "  make usb-flash       - Flash the ISO to a USB drive (set USB_DEVICE)"
+	@echo "  make build-usb       - Build the NixOS ISO for the workshop"
+	@echo "  make flash-usb       - Flash the ISO to a USB drive (set USB_DEVICE)"
 	@echo ""
 	@echo "--- Host Development Shell ---"
 	@echo "  make local-shell     - Enter a dev shell with terraform, etc., on your main machine"
@@ -31,12 +31,20 @@ help:
 # --- Local Development ---
 local-vm-run:
 	@echo "🚀 Starting local workshop environment inside a VM..."
-	@echo "    (Close the VM window or press Ctrl+A, X to exit)"
+	@echo "    (A new window with a desktop will open. Close it to stop the VM.)"
 	nix run --impure .#local-vm
 
 # --- Cloud Infrastructure ---
-cloud-deploy:
+deploy-cloud:
+	@echo "🚀 Deploying to Hetzner Cloud..."
+	cd terraform && terraform init
+	cd terraform && terraform apply -auto-approve \
+		-var="hcloud_token=${HCLOUD_TOKEN}" \
+		-var="domain=${DOMAIN}" \
+		-var="ssh_public_key=$$(cat ~/.ssh/id_rsa.pub)"
+	@echo "🔍 Running health checks..."
 	./scripts/deploy.sh
+	@echo "✅ Cloud deployment complete and verified!"
 
 status-cloud:
 	@echo "📊 Checking server status..."
@@ -53,10 +61,12 @@ destroy-cloud:
 	cd terraform && terraform destroy -auto-approve
 
 # --- USB Boot Drive ---
-usb-build:
+build-usb:
+	@echo "🔨 Building NixOS workshop ISO..."
 	nix build .#live-iso
+	@echo "✅ ISO built: result/iso/nixos.iso"
 
-flash-usb: usb-build
+flash-usb: build-usb
 	@echo "⚠️  Flashing to ${USB_DEVICE} - THIS WILL ERASE THE DEVICE!"
 	@read -p "Continue? [y/N]: " confirm && [ "$$confirm" = "y" ]
 	sudo dd if=result/iso/nixos.iso of=${USB_DEVICE} bs=4M status=progress oflag=sync

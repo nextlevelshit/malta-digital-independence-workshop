@@ -1,89 +1,98 @@
 # 🍪 CODE CRISPIES Workshop Infrastructure
 
-Three deployment environments for Co-op Cloud workshop:
+This repository contains the infrastructure for the Co-op Cloud workshop, providing three distinct deployment environments.
 
+---
 ## 🚀 Quick Start
 
 ```bash
-# 1. Build & flash USB drives
+# 1. Start the local development virtual machine
+make local-vm-run
+
+# 2. Build & flash USB drives for participants
 make build-usb
 make flash-usb USB_DEVICE=/dev/sdX
 
-# 2. Deploy cloud infrastructure  
-export HCLOUD_TOKEN=your_token
+# 3. Deploy the production cloud infrastructure
+export HCLOUD_TOKEN="your_token_here"
 make deploy-cloud
+````
 
-# 3. Local development
-make local-shell
-make local-deploy
-make local-ssh
-```
+-----
 
 ## 📁 Project Structure
 
 ```
-├── flake.nix              # USB boot environment
-├── local/flake.nix        # Local NixOS containers
+├── flake.nix              # All Nix configurations (USB, VM)
 ├── terraform/             # Hetzner Cloud infrastructure
 ├── scripts/deploy.sh      # Cloud setup automation
 ├── docs/USB_BOOT_INSTRUCTIONS.md
 └── Makefile              # Build & deploy commands
 ```
 
+-----
+
 ## 🌍 Three Environments
 
-### 1. Cloud (Production)
-- Hetzner VMs: `hopper.codecrispi.es`, `curie.codecrispi.es`, etc.
-- Pre-configured with Docker Swarm + abra
-- SSL certificates via Let's Encrypt
+### 1\. Cloud (Production)
 
-### 2. USB Boot (Workshop)
-- NixOS live environment 
-- Auto-connects to workshop WiFi
-- Helper functions: `connect hopper`, `recipes`, `help`
-- SSH into cloud VMs
+  - [cite\_start]**What:** Hetzner VMs named `hopper.codecrispi.es`, `curie.codecrispi.es`, etc. [cite: 52]
+  - **Purpose:** The live environment for workshop participants.
 
-### 3. Local (Development)
-- NixOS containers: `participant1.local` through `participant15.local`
-- Test abra deployments locally
-- Isolated Docker Swarm per container
+### 2\. USB Boot (Workshop)
 
-## 🔧 Development Workflow
+  - [cite\_start]**What:** A bootable NixOS live environment. [cite: 4]
+  - **Purpose:** Used by participants to connect to their cloud servers. [cite\_start]It includes helper functions like `connect hopper`. [cite: 12]
 
-```bash
-# Enter development environment
-make local-shell
+### 3\. Local (Development)
 
-# Deploy local testing environment
-make local-deploy
+  - **What:** A self-contained Virtual Machine (VM) that runs on your local computer.
+  - **Purpose:** The VM hosts simulated participant containers (e.g., `hopper.local`) and includes a lightweight desktop with a web browser, providing a perfect, isolated environment to test the entire workshop flow without needing cloud servers.
 
-# SSH into local participant container
-make local-ssh  # Select participant 1-15
+-----
 
-# Test app deployment inside container
-abra app new wordpress -S --domain=test.participant1.local
-abra app deploy test.participant1.local
-```
+## 🔧 Local Development Workflow
 
-## 📦 Workshop Flow
+1.  **Start the VM**
+    Run the following command. A new window will open and automatically boot into a lightweight desktop.
 
-1. **Participant boots USB** → NixOS live environment
-2. **Connects to WiFi** → `CODE_CRISPIES_GUEST` 
-3. **SSH to cloud VM** → `connect hopper`
-4. **Deploy apps** → `abra app new wordpress -S --domain=mysite.hopper.codecrispi.es`
-5. **Access via browser** → `https://mysite.hopper.codecrispi.es`
+    ```bash
+    make local-vm-run
+    ```
 
-## 🎯 Available Apps
+2.  **Work Inside the VM**
+    All testing is now done inside the VM's graphical desktop.
 
-- **WordPress** - CMS/Blog
-- **Nextcloud** - File sharing
-- **HedgeDoc** - Collaborative markdown
-- **Jitsi** - Video conferencing
-- **PrestaShop** - E-commerce
+      * Open the **Terminal** to run commands.
+      * Open **Firefox** to view the deployed web applications.
+
+3.  **Example: Deploying WordPress**
+
+      * **In the VM's Terminal**, get a root shell and SSH into the first participant's container:
+        ```bash
+        # Become root (no password needed)
+        sudo -i
+
+        # Connect to participant 1 (hopper.local)
+        ssh root@192.168.100.11
+        ```
+      * **Inside the container**, deploy a WordPress site with `abra`:
+        ```bash
+        abra app new wordpress -S --domain=blog.hopper.local
+        abra app deploy blog.hopper.local
+        ```
+      * **In the VM's Firefox**, navigate to the address `http://blog.hopper.local`. You will see the WordPress installation screen.
+
+-----
 
 ## 🧹 Cleanup
 
 ```bash
-make clean           # Clean local artifacts
-make destroy-cloud   # Destroy Hetzner infrastructure
+# Clean local build artifacts
+make clean
+
+# Destroy Hetzner cloud infrastructure
+make destroy-cloud
+
+# To stop the local VM, simply close its window.
 ```

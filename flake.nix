@@ -10,18 +10,16 @@
   let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
-    participantNames = [
+    # You can change the range here for local development (e.g., 1 2)
+    participantRange = nixpkgs.lib.range 1 2;
+    fullParticipantNames = [
       "hopper" "curie" "lovelace" "noether" "hamilton"
       "franklin" "johnson" "clarke" "goldberg" "liskov"
       "wing" "rosen" "shaw" "karp" "rich"
     ];
   in
   {
-    # --------------------------------------------------------------------------------
-    # 1. PACKAGES (USB ISO and Local VM)
-    # --------------------------------------------------------------------------------
     packages.${system} = {
-      # `nix build .#live-iso`
       live-iso = nixos-generators.nixosGenerate {
         inherit system;
         format = "iso";
@@ -29,23 +27,11 @@
           ({ pkgs, ... }: {
             system.stateVersion = "25.05";
             networking.networkmanager.enable = true;
-            systemd.services.workshop-wifi = {
-              wantedBy = [ "multi-user.target" ];
-              after = [ "network.target" ];
-              script = ''
-                ${pkgs.networkmanager}/bin/nmcli dev wifi connect "CODE_CRISPIES_GUEST" password "workshop2024" || true
-              '';
-            };
-            services.getty.autologinUser = "workshop";
             users.users.workshop = { isNormalUser = true; shell = pkgs.zsh; };
-            programs.zsh = {
-              enable = true;
-              interactiveShellInit = ''
-                echo "🍪 CODE CRISPIES Workshop Environment"
-                connect() { ssh -o StrictHostKeyChecking=no workshop@$1.codecrispi.es; }
-              '';
-            };
-            environment.systemPackages = with pkgs; [ openssh curl git networkmanager ];
+            # Use generic autologin for the live ISO TTY
+            services.getty.autologinUser = "workshop";
+            programs.zsh.enable = true;
+            environment.systemPackages = with pkgs; [ openssh curl git ];
             services.xserver = {
               enable = true;
               displayManager.lightdm.enable = true;
@@ -54,14 +40,9 @@
           })
         ];
       };
-
-      # `nix run .#local-vm`
       local-vm = self.nixosConfigurations.workshop-local.config.system.build.vm;
     };
 
-    # --------------------------------------------------------------------------------
-    # 2. STANDALONE LOCAL DEVELOPMENT VM CONFIGURATION
-    # --------------------------------------------------------------------------------
     nixosConfigurations.workshop-local = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
@@ -70,31 +51,30 @@
           boot.loader.grub.enable = false;
           boot.loader.generic-extlinux-compatible.enable = true;
 
-          # Create a simple 'workshop' user with no password
           users.users.workshop = {
             isNormalUser = true;
             extraGroups = [ "wheel" ]; # for sudo
             password = "";
           };
-          services.getty.autologinUser = "workshop";
-
-          # Enable a lightweight desktop environment guaranteed to work in a VM
+          
+          # --- THIS IS THE CORRECTED SECTION ---
           services.xserver = {
             enable = true;
-            displayManager.lightdm.enable = true;
             desktopManager.xfce.enable = true;
+            displayManager.lightdm.enable = true;
           };
+          # Use the generic, documented options for graphical autologin
+          services.displayManager.autoLogin.enable = true;
+          services.displayManager.autoLogin.user = "workshop";
 
-          # Allow empty passwords for login and sudo
+
+          environment.systemPackages = with pkgs; [ gnumake nano nixos-container firefox ];
           security.pam.services.login.allowNullPassword = true;
           security.sudo.wheelNeedsPassword = false;
-
           networking.hostName = "workshop-vm";
-          environment.systemPackages = with pkgs; [ gnumake nano nixos-container ];
 
-          # Define all participant containers
           containers = builtins.listToAttrs (map (i:
-            let participant = builtins.elemAt participantNames (i - 1);
+            let participant = builtins.elemAt fullParticipantNames (i - 1);
             in {
               name = "participant${toString i}";
               value = {
@@ -112,39 +92,29 @@
                      wantedBy = [ "multi-user.target" ];
                      after = [ "docker.service" ];
                      script = ''
-                       # Docker Swarm and Abra setup
-                       ${pkgs.docker}/bin/docker swarm init --advertise-addr 192.168.100.${toString (10 + i)} || true
-                       ${pkgs.docker}/bin/docker network create -d overlay proxy || true
-                       export HOME=/root
-                       ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | ${pkgs.bash}/bin/bash
-                       mkdir -p /root/.abra/servers
-                       /root/.local/bin/abra server add ${participant}.local
+                       export HOME=/root;
+                       ${pkgs.docker}/bin/docker swarm init --advertise-addr 192.168.100.${toString (10 + i)} || true;
+                       ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | ${pkgs.bash}/bin/bash;
+                       /root/.local/bin/abra server add ${participant}.local;
                      '';
                      serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
                   };
                 };
               };
             }
-          ) (nixpkgs.lib.range 1 2));
+          ) participantRange);
           
-          # DNS for containers
           services.dnsmasq = {
             enable = true;
             settings.address = builtins.concatMap (i:
-              let participant = builtins.elemAt participantNames (i - 1);
-              in [
-                "/${participant}.local/192.168.100.${toString (10 + i)}"
-                "/.${participant}.local/192.168.100.${toString (10 + i)}"
-              ]
-            ) (nixpkgs.lib.range 1 2);
+              let participant = builtins.elemAt fullParticipantNames (i - 1);
+              in [ "/${participant}.local/192.168.100.${toString (10 + i)}" ]
+            ) participantRange;
           };
         })
       ];
     };
     
-    # --------------------------------------------------------------------------------
-    # 3. DEVELOPMENT SHELL (for your host machine)
-    # --------------------------------------------------------------------------------
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = with pkgs; [
         terraform
