@@ -64,7 +64,7 @@ local-dev-shell:
 
 local-deploy:
 	@echo "🏠 Deploying local workshop environment..."
-	sudo nixos-rebuild switch --flake .#workshop-local
+	sudo nixos-rebuild switch --impure --flake .#workshop-local
 	@echo "✅ Local containers running!"
 
 local-ssh:
