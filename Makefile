@@ -2,7 +2,7 @@
 -include .env
 export
 
-.PHONY: help cloud-deploy cloud-status cloud-destroy usb-build usb-flash local-dev-shell local-deploy local-ssh local-clean clean
+.PHONY: help cloud-deploy cloud-status cloud-destroy usb-build usb-flash local-vm-run local-shell clean
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := /dev/sdX
@@ -12,27 +12,33 @@ help:
 	@echo ""
 	@echo "Usage: make <command>"
 	@echo ""
-	@echo "Cloud Commands:"
-	@echo "  cloud-deploy    - Deploy VMs to Hetzner and run health checks"
-	@echo "  cloud-status    - Check the status of cloud servers"
-	@echo "  cloud-destroy   - Destroy all cloud infrastructure"
+	@echo "--- Local VM Development ---"
+	@echo "  make local-vm-run    - Start the complete workshop environment in a VM"
 	@echo ""
-	@echo "USB Drive Commands:"
-	@echo "  usb-build       - Build the NixOS ISO for the workshop"
-	@echo "  usb-flash       - Flash the ISO to a USB drive (set USB_DEVICE)"
+	@echo "--- Cloud Infrastructure ---"
+	@echo "  make cloud-deploy    - Deploy VMs to Hetzner"
+	@echo "  make cloud-status    - Check the status of cloud servers"
+	@echo "  make cloud-destroy   - Destroy all cloud infrastructure"
 	@echo ""
-	@echo "Local Development Commands:"
-	@echo "  local-dev-shell - Enter the development shell with all tools"
-	@echo "  local-deploy    - Deploy local NixOS containers for testing"
-	@echo "  local-ssh       - SSH into a local participant container"
-	@echo "  local-clean     - Stop and destroy all local containers"
+	@echo "--- USB Drive Creation ---"
+	@echo "  make usb-build       - Build the NixOS ISO for the workshop"
+	@echo "  make usb-flash       - Flash the ISO to a USB drive (set USB_DEVICE)"
+	@echo ""
+	@echo "--- Host Development Shell ---"
+	@echo "  make local-shell     - Enter a dev shell with terraform, etc., on your main machine"
+
+
+# --- Local Development ---
+local-vm-run:
+	@echo "🚀 Starting local workshop environment inside a VM..."
+	@echo "    (Close the VM window or press Ctrl+A, X to exit)"
+	nix run --impure .#local-vm
 
 # --- Cloud Infrastructure ---
 cloud-deploy:
-	@echo "🚀 Deploying to Hetzner Cloud..."
 	./scripts/deploy.sh
 
-cloud-status:
+status-cloud:
 	@echo "📊 Checking server status..."
 	@for name in hopper curie lovelace noether hamilton franklin johnson clarke goldberg liskov wing rosen shaw karp rich; do \
 		echo -n "$$name.${DOMAIN}: "; \
@@ -43,37 +49,22 @@ cloud-status:
 		fi; \
 	done
 
-cloud-destroy:
-	cd cloud && terraform destroy -auto-approve
+destroy-cloud:
+	cd terraform && terraform destroy -auto-approve
 
 # --- USB Boot Drive ---
 usb-build:
-	@echo "🔨 Building NixOS workshop ISO..."
-	nix build .#packages.x86_64-linux.live-iso
-	@echo "✅ ISO built: result/iso/nixos.iso"
+	nix build .#live-iso
 
-usb-flash: usb-build
-	@echo "⚠️ Flashing to ${USB_DEVICE} - THIS WILL ERASE THE DEVICE!"
+flash-usb: usb-build
+	@echo "⚠️  Flashing to ${USB_DEVICE} - THIS WILL ERASE THE DEVICE!"
 	@read -p "Continue? [y/N]: " confirm && [ "$$confirm" = "y" ]
 	sudo dd if=result/iso/nixos.iso of=${USB_DEVICE} bs=4M status=progress oflag=sync
 	@echo "✅ USB drive ready!"
 
-# --- Local Development ---
-local-dev-shell:
+# --- Host Development ---
+local-shell:
 	nix develop
-
-local-deploy:
-	@echo "🏠 Deploying local workshop environment..."
-	sudo nixos-rebuild switch --impure --flake .#workshop-local
-	@echo "✅ Local containers running!"
-
-local-ssh:
-	@read -p "Connect to participant number [1-15]: " num; \
-	ssh root@192.168.100.$$((10 + $$num))
-
-local-clean:
-	sudo nixos-container stop participant{1..15} || true
-	sudo nixos-container destroy participant{1..15} || true
 
 clean:
 	rm -rf result .direnv
