@@ -36,23 +36,61 @@
 					security.pam.services.login.allowNullPassword = true;
 					security.sudo.wheelNeedsPassword = false;
 					
-					# CORRECTED GUI setup
+					# GUI setup
 					services.xserver = {
 						enable = true;
 						desktopManager.xfce.enable = true;
-						displayManager = {
-							lightdm.enable = true;
-							autoLogin.enable = true;
-							autoLogin.user = "workshop";
-							sessionCommands = ''
-								${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --title="Workshop Terminal" \
-									--command="bash -c 'echo \"🍪 Workshop VM Ready!\"; echo \"\"; echo \"SSH into containers:\"; echo \"  ssh root@192.168.100.11  # hopper\"; echo \"  ssh root@192.168.100.12  # curie\"; echo \"\"; bash'" &
-							'';
-						};
+						displayManager.lightdm.enable = true;
 					};
 					
+					services.displayManager = {
+						autoLogin.enable = true;
+						autoLogin.user = "workshop";
+					};
+					
+					# Auto-open terminal with helper commands
+					services.xserver.displayManager.sessionCommands = ''
+						${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --title="🍪 Workshop Terminal" \
+							--command="bash -c '
+								echo \"🍪 Workshop VM Ready!\"; 
+								echo \"\";
+								echo \"🔌 SSH into containers:\";
+								echo \"  sudo connect hopper       # Container login\";
+								echo \"  sudo connect curie        # Container login\";
+								echo \"  ssh root@192.168.100.11   # Direct SSH to hopper\";
+								echo \"  ssh root@192.168.100.12   # Direct SSH to curie\";
+								echo \"\";
+								echo \"📦 Container management:\";
+								echo \"  sudo containers           # List all containers\";
+								echo \"  sudo logs                 # Show setup logs\";
+								echo \"\";
+								echo \"✨ Abra is pre-installed in containers!\";
+								echo \"\";
+								bash
+							'" &
+					'';
+					
+					# System packages including helper scripts
 					environment.systemPackages = with pkgs; [ 
 						firefox curl git jq nano tree nixos-container
+						# Custom helper scripts that work with sudo
+						(pkgs.writeScriptBin "connect" ''
+							#!/bin/bash
+							if [ -z "$1" ]; then
+								echo "Usage: connect <container-name>"
+								echo "Available: hopper curie"
+								exit 1
+							fi
+							exec nixos-container root-login "$1"
+						'')
+						(pkgs.writeScriptBin "containers" ''
+							#!/bin/bash
+							exec nixos-container list
+						'')
+						(pkgs.writeScriptBin "logs" ''
+							#!/bin/bash
+							exec journalctl -u container@hopper -u container@curie -f
+						'')
 					];
 					
 					networking = {
@@ -64,14 +102,8 @@
 							externalInterface = "eth0";
 						};
 					};
-					
-					programs.bash.shellAliases = {
-						containers = "nixos-container list";
-						hopper = "ssh root@192.168.100.11";
-						curie = "ssh root@192.168.100.12";
-					};
 
-					# Container configs (same as before)
+					# Container configurations with automated abra installation
 					containers = builtins.listToAttrs (builtins.genList (i:
 						let 
 							name = builtins.elemAt participantNames i;
@@ -112,9 +144,10 @@
 									virtualisation.docker.enable = true;
 									
 									environment.systemPackages = with pkgs; [ 
-										docker curl git wget jq
+										docker curl git wget jq bash
 									];
 									
+									# Automated abra installation service
 									systemd.services.workshop-setup = {
 										wantedBy = [ "multi-user.target" ];
 										after = [ "network-online.target" "docker.service" ];
@@ -122,8 +155,9 @@
 										script = ''
 											echo "🍪 Setting up ${name} container..."
 											
+											# Wait for network
 											for i in {1..10}; do
-												if curl -s --max-time 5 google.com >/dev/null 2>&1; then
+												if ${pkgs.curl}/bin/curl -s --max-time 5 google.com >/dev/null 2>&1; then
 													echo "✅ Network ready"
 													break
 												fi
@@ -131,15 +165,48 @@
 												sleep 2
 											done
 											
+											# Initialize Docker Swarm
 											${pkgs.docker}/bin/docker swarm init --advertise-addr ${ip} || true
+											
+											# Install abra for root user
+											export HOME=/root
+											if [ ! -f /root/.local/bin/abra ]; then
+												echo "📦 Installing abra..."
+												${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | ${pkgs.bash}/bin/bash
+												echo "✅ Abra installed"
+											fi
+											
+											# Make abra available globally
+											if ! grep -q "/.local/bin" /root/.bashrc 2>/dev/null; then
+												echo 'export PATH="$HOME/.local/bin:$PATH"' >> /root/.bashrc
+											fi
+											
+											# Create symlink for immediate availability
+											if [ -f /root/.local/bin/abra ]; then
+												ln -sf /root/.local/bin/abra /usr/local/bin/abra 2>/dev/null || true
+											fi
+											
+											# Add server
+											if [ -f /root/.local/bin/abra ]; then
+												export PATH="/root/.local/bin:$PATH"
+												/root/.local/bin/abra server add ${name}.local 2>/dev/null || true
+											fi
 											
 											echo "✅ ${name} container ready!"
 											echo "SSH: ssh root@${ip} (password: root)"
+											echo "Abra: Available via 'abra' command"
 										'';
 										serviceConfig = {
 											Type = "oneshot";
 											RemainAfterExit = true;
+											StandardOutput = "journal";
+											StandardError = "journal";
 										};
+									};
+									
+									# Ensure abra is in PATH for all sessions
+									environment.sessionVariables = {
+										PATH = [ "/root/.local/bin" ];
 									};
 								};
 							};
