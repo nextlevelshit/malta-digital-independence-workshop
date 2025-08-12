@@ -1,0 +1,88 @@
+#cloud-config
+users:
+  - name: workshop
+    groups: [adm, docker]
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+packages:
+  - docker.io
+  - curl
+  - git
+  - jq
+
+runcmd:
+  - systemctl enable docker
+  - systemctl start docker
+  - usermod -aG docker workshop
+  - docker swarm init
+  - docker network create -d overlay proxy
+  
+  - curl -fsSL https://install.abra.coopcloud.tech | sudo -u workshop bash
+  - ln -sf /home/workshop/.local/bin/abra /usr/local/bin/abra
+  
+  - sudo -u workshop mkdir -p /home/workshop/.abra/servers
+  - sudo -u workshop abra server add ${participant_name}.${domain}
+  
+  - sudo -u workshop abra app new traefik --domain=traefik.${participant_name}.${domain} --server=${participant_name}.${domain}
+  - sudo -u workshop abra app deploy traefik.${participant_name}.${domain}
+
+  - |
+    cat > /home/workshop/.bashrc << 'EOF'
+    export PATH="$HOME/.local/bin:$PATH"
+    
+    recipes() {
+      echo "Available Co-op Cloud Recipes:"
+      echo ""
+      echo "Content Management:"
+      echo "  wordpress ghost hedgedoc dokuwiki mediawiki"
+      echo ""
+      echo "File & Collaboration:"
+      echo "  nextcloud seafile collabora onlyoffice"
+      echo ""
+      echo "Communication:"
+      echo "  jitsi-meet matrix-synapse rocketchat mattermost"
+      echo ""
+      echo "E-commerce & Business:"
+      echo "  prestashop invoiceninja kimai pretix"
+      echo ""
+      echo "Development & Tools:"
+      echo "  gitea n8n jupyter-lab"
+      echo ""
+      echo "Analytics & Monitoring:"
+      echo "  plausible uptime-kuma grafana"
+      echo ""
+      echo "Media & Social:"
+      echo "  peertube mastodon jellyfin"
+      echo ""
+      echo "Deploy: abra app new <recipe> -S --domain=myapp.${participant_name}.${domain}"
+      echo "Browse all: https://recipes.coopcloud.tech"
+    }
+    
+    help() {
+      echo "CODE CRISPIES Workshop Commands:"
+      echo ""
+      echo "recipes       - Show available app recipes"
+      echo "abra app new <recipe> -S --domain=<name>.${participant_name}.${domain}"
+      echo "abra app deploy <domain>"
+      echo "abra app ls   - List your apps"
+      echo ""
+      echo "Examples:"
+      echo "  abra app new wordpress -S --domain=blog.${participant_name}.${domain}"
+      echo "  abra app deploy blog.${participant_name}.${domain}"
+      echo ""
+      echo "Server: ${participant_name}.${domain}"
+      echo "Traefik: https://traefik.${participant_name}.${domain}"
+    }
+    
+    export -f recipes help
+    
+    echo "CODE CRISPIES Workshop!"
+    echo "Server: ${participant_name}.${domain}"
+    echo "Type 'help' for commands or 'recipes' for available apps"
+    EOF
+
+final_message:
+  - echo "Workshop server ready! Traefik available at https://traefik.${participant_name}.${domain}"
