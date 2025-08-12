@@ -27,7 +27,12 @@
           ({ pkgs, ... }: {
             system.stateVersion = "25.05";
             networking.networkmanager.enable = true;
-            users.users.workshop = { isNormalUser = true; shell = pkgs.zsh; };
+            users.users.workshop = { 
+              isNormalUser = true;
+              shell = pkgs.zsh;
+              extraGroups = [ "wheel" ];
+              password = "workshop";
+            };
             # Use generic autologin for the live ISO TTY
             services.getty.autologinUser = "workshop";
             programs.zsh.enable = true;
@@ -36,6 +41,9 @@
               enable = true;
               displayManager.lightdm.enable = true;
               desktopManager.xfce.enable = true;
+              displayManager.sessionCommands = ''
+                ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal -e "sudo -i" &
+              '';
             };
           })
         ];
@@ -86,6 +94,8 @@
                   system.stateVersion = "25.05";
                   services.openssh.enable = true;
                   networking.hostName = participant;
+                  console.enable = true;
+                  users.users.root.password = "root";
                   virtualisation.docker.enable = true;
                   environment.systemPackages = with pkgs; [ docker git curl jq ];
                   systemd.services.workshop-setup = {
