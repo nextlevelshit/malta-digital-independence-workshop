@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: help deploy-cloud build-usb flash-usb local-vm-run clean status destroy-cloud
+.PHONY: help deploy-cloud build-usb flash-usb local-vm-run clean status destroy-cloud opencode
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
@@ -98,3 +98,7 @@ local-vm-run:
 clean:
 	rm -rf result .direnv terraform/.terraform terraform/terraform.tfstate*
 	@echo "Cleaned up build artifacts"
+
+opencode:
+	@echo "Starting opencode in Nix dev shell..."
+	nix develop --command opencode
