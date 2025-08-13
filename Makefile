@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: help deploy-cloud build-usb flash-usb local-vm-run clean status destroy-cloud opencode
+.PHONY: help deploy-cloud build-usb flash-usb local-vm-run clean status destroy-cloud opencode lint
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
@@ -102,3 +102,12 @@ clean:
 opencode:
 	@echo "Starting opencode in Nix dev shell..."
 	nix develop --command opencode
+
+lint:
+	@echo "Linting Markdown files..."
+	@markdownlint-cli . || true
+	@echo "Linting JSON files..."
+	@find . -type f -name "*.json" -print0 | xargs -0 -I {} bash -c 'jq . "{}" >/dev/null || (echo "JSON lint error in {}" && exit 1)'
+	@echo "Linting Nix files..."
+	@nixpkgs-fmt . || true
+	@echo "Linting complete."

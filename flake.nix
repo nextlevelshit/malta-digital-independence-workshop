@@ -137,8 +137,8 @@
 
 		devShells.${system}.default = pkgs.mkShell {
 			packages = with pkgs; [
-				markdownlint
-				jsonlint
+				markdownlint-cli
+				jq
 				nixpkgs-fmt
 			];
 		};
