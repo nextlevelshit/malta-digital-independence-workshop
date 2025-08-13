@@ -6,4 +6,6 @@
   "ask_before_executing_commands": true,
   "ask_before_git_commands": true,
   "ask_before_reading_file": "^(?!\./).*"
+,
+  "includeCoAuthoredBy": false
 }
