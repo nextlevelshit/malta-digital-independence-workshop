@@ -1,0 +1,9 @@
+{
+  "build": "make build-usb",
+  "lint": "markdownlint . || true && jsonlint . || true && nixpkgs-fmt . || true",
+  "test": "make status-cloud"
+,
+  "ask_before_executing_commands": true,
+  "ask_before_git_commands": true,
+  "ask_before_reading_file": "^(?!\./).*"
+}
