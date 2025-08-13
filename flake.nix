@@ -135,6 +135,14 @@
 			};
 		};
 
+		devShells.${system}.default = pkgs.mkShell {
+			packages = with pkgs; [
+				markdownlint
+				jsonlint
+				nixpkgs-fmt
+			];
+		};
+
 		nixosConfigurations.workshop-vm = nixpkgs.lib.nixosSystem {
 			inherit system;
 			modules = [
