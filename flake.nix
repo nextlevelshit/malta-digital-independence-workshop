@@ -273,6 +273,7 @@
 								echo ""
 								echo "Usage in container:"
 								echo "  abra app new <recipe> -S --domain=myapp.<container-name>.local"
+								echo "  abra app new wordpress -S --domain=blog.hopper.local"
 								echo "  abra app deploy myapp.<container-name>.local"
 								echo ""
 								echo "Browse all: https://recipes.coopcloud.tech"
