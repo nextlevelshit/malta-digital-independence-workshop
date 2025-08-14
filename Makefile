@@ -4,6 +4,7 @@ export
 .PHONY: help deploy-cloud build-usb flash-usb local-vm-run clean status destroy-cloud opencode lint
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
+PARTICIPANTS := $(or $(WORKSHOP_PARTICIPANTS),3)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
 
 help:
@@ -19,17 +20,21 @@ help:
 	@echo "  make flash-usb       - Flash ISO to USB drive"
 	@echo ""
 	@echo "Local Development:"
-	@echo "  make local-vm-run    - Start local VM with containers"
+	@echo "  make local-vm-run    - Start local VM with 15 containers"
 	@echo "  make clean           - Clean build artifacts"
 	@echo ""
+	@echo "Development:"
+	@echo "  make opencode        - Start opencode in dev shell"
+	@echo "  make lint            - Run linting checks"
+	@echo ""
 	@echo "Config: Domain=$(DOMAIN), USB=$(USB_DEVICE)"
-	@echo "Required: HCLOUD_TOKEN, SSH key at ~/.ssh/id_rsa.pub"
+	@echo "Required: HCLOUD_TOKEN, SSH key at ~/.ssh/id_ed25519.pub"
 
 build-usb:
 	@echo "Building NixOS workshop ISO for $(DOMAIN)..."
 	@if [ ! -f ~/.ssh/id_ed25519.pub ]; then \
 		echo "SSH key not found at ~/.ssh/id_ed25519.pub"; \
-		echo "Generate with: ssh-keygen -t rsa -b 4096"; \
+		echo "Generate with: ssh-keygen -t ed25519"; \
 		exit 1; \
 	fi
 	nix build .#live-iso --show-trace
@@ -54,8 +59,9 @@ deploy-cloud:
 		echo "Get token from: https://console.hetzner.cloud/"; \
 		exit 1; \
 	fi
-	@if [ ! -f ~/.ssh/id_rsa.pub ]; then \
-		echo "SSH key not found at ~/.ssh/id_rsa.pub"; \
+	@if [ ! -f ~/.ssh/id_ed25519.pub ]; then \
+		echo "SSH key not found at ~/.ssh/id_ed25519.pub"; \
+		echo "Generate with: ssh-keygen -t ed25519"; \
 		exit 1; \
 	fi
 	@echo "Deploying 15 workshop servers to Hetzner Cloud..."
@@ -66,7 +72,7 @@ deploy-cloud:
 		-var="hetzner_dns_token=$(HETZNER_DNS_TOKEN)" \
 		-var="dns_zone_id=$(DNS_ZONE_ID)" \
 		-var="domain=$(DOMAIN)" \
-		-var="ssh_public_key=$$(cat ~/.ssh/id_rsa.pub)"
+		-var="ssh_public_key=$$(cat ~/.ssh/id_ed25519.pub)"
 	@echo "Running health checks..."
 	@sleep 60
 	$(MAKE) status-cloud
@@ -91,8 +97,8 @@ destroy-cloud:
 	cd terraform && terraform destroy -auto-approve
 
 local-vm-run:
-	@echo "Starting local workshop VM..."
-	@echo "VM will open with desktop showing 2 participant containers"
+	@echo "Starting local workshop VM with $(PARTICIPANTS) containers..."
+	@echo "VM will open with desktop showing all participant containers"
 	nix run --impure .#local-vm
 
 clean:

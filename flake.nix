@@ -13,8 +13,7 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      participantNames = [ "hopper" "curie" ];
-      fullParticipantNames = [
+      allParticipantNames = [
         "hopper"
         "curie"
         "lovelace"
@@ -31,6 +30,15 @@
         "karp"
         "rich"
       ];
+      numLookup = {
+        "0" = 0; "1" = 1; "2" = 2; "3" = 3; "4" = 4; "5" = 5; "6" = 6; "7" = 7; "8" = 8; "9" = 9;
+        "10" = 10; "11" = 11; "12" = 12; "13" = 13; "14" = 14; "15" = 15;
+      };
+      participantsEnv = builtins.getEnv "PARTICIPANTS";
+      numParticipants = if builtins.hasAttr participantsEnv numLookup
+                        then builtins.getAttr participantsEnv numLookup
+                        else 3;
+      participantNames = builtins.genList (i: builtins.elemAt allParticipantNames i) numParticipants;
     in
     {
       packages.${system} = {
@@ -73,62 +81,62 @@
               programs.zsh = {
                 enable = true;
                 interactiveShellInit = ''
-                  								echo "CODE CRISPIES Workshop Environment"
-                  								echo "Available servers:"
-                  								${builtins.concatStringsSep "\n" (map (name: 
-                  									"echo \"  - ${name}.codecrispi.es\""
-                  								) fullParticipantNames)}
-                  								echo ""
-                  								echo "Commands: connect <name> | recipes | help"
-                  								
-                  								connect() {
-                  									[ -z "$1" ] && { echo "Usage: connect <name>"; return 1; }
-                  									echo "Connecting to $1.codecrispi.es..."
-                  									ssh -o StrictHostKeyChecking=no workshop@$1.codecrispi.es
-                  								}
-                  								
-                  								recipes() {
-                  									echo "Available Co-op Cloud Recipes:"
-                  									echo ""
-                  									echo "Content Management:"
-                  									echo "  wordpress ghost hedgedoc dokuwiki mediawiki"
-                  									echo ""
-                  									echo "File & Collaboration:" 
-                  									echo "  nextcloud seafile collabora onlyoffice"
-                  									echo ""
-                  									echo "Communication:"
-                  									echo "  jitsi-meet matrix-synapse rocketchat mattermost"
-                  									echo ""
-                  									echo "E-commerce & Business:"
-                  									echo "  prestashop invoiceninja kimai pretix"
-                  									echo ""
-                  									echo "Development & Tools:"
-                  									echo "  gitea drone n8n gitlab jupyter-lab"
-                  									echo ""
-                  									echo "Analytics & Monitoring:"
-                  									echo "  plausible matomo uptime-kuma grafana"
-                  									echo ""
-                  									echo "Media & Social:"
-                  									echo "  peertube funkwhale mastodon pixelfed jellyfin"
-                  									echo ""
-                  									echo "Deploy: abra app new <recipe> -S --domain=myapp.<name>.codecrispi.es"
-                  									echo "Browse all: https://recipes.coopcloud.tech"
-                  								}
-                  								
-                  								help() {
-                  									echo "CODE CRISPIES Workshop Commands:"
-                  									echo ""
-                  									echo "connect <name> - SSH to your assigned server"
-                  									echo "recipes        - Show available app recipes"
-                  									echo "sudo nmcli dev wifi connect SSID password PASSWORD"
-                  									echo ""
-                  									echo "Examples:"
-                  									echo "  connect hopper"
-                  									echo "  sudo nmcli dev wifi connect CODE_CRISPIES_GUEST password workshop2024"
-                  								}
-                  								
-                  								export -f connect recipes help
-                  							'';
+                  echo "CODE CRISPIES Workshop Environment"
+                  echo "Available servers:"
+                  ${builtins.concatStringsSep "\n" (map (name: 
+                    "echo \"  - ${name}.codecrispi.es\""
+                  ) allParticipantNames)}
+                  echo ""
+                  echo "Commands: connect <name> | recipes | help"
+                  
+                  connect() {
+                    [ -z "$1" ] && { echo "Usage: connect <name>"; return 1; }
+                    echo "Connecting to $1.codecrispi.es..."
+                    ssh -o StrictHostKeyChecking=no workshop@$1.codecrispi.es
+                  }
+                  
+                  recipes() {
+                    echo "Available Co-op Cloud Recipes:"
+                    echo ""
+                    echo "Content Management:"
+                    echo "  wordpress ghost hedgedoc dokuwiki mediawiki"
+                    echo ""
+                    echo "File & Collaboration:" 
+                    echo "  nextcloud seafile collabora onlyoffice"
+                    echo ""
+                    echo "Communication:"
+                    echo "  jitsi-meet matrix-synapse rocketchat mattermost"
+                    echo ""
+                    echo "E-commerce & Business:"
+                    echo "  prestashop invoiceninja kimai pretix"
+                    echo ""
+                    echo "Development & Tools:"
+                    echo "  gitea drone n8n gitlab jupyter-lab"
+                    echo ""
+                    echo "Analytics & Monitoring:"
+                    echo "  plausible matomo uptime-kuma grafana"
+                    echo ""
+                    echo "Media & Social:"
+                    echo "  peertube funkwhale mastodon pixelfed jellyfin"
+                    echo ""
+                    echo "Deploy: abra app new <recipe> -S --domain=myapp.<name>.codecrispi.es"
+                    echo "Browse all: https://recipes.coopcloud.tech"
+                  }
+                  
+                  help() {
+                    echo "CODE CRISPIES Workshop Commands:"
+                    echo ""
+                    echo "connect <name> - SSH to your assigned server"
+                    echo "recipes        - Show available app recipes"
+                    echo "sudo nmcli dev wifi connect SSID password PASSWORD"
+                    echo ""
+                    echo "Examples:"
+                    echo "  connect hopper"
+                    echo "  sudo nmcli dev wifi connect CODE_CRISPIES_GUEST password workshop2024"
+                  }
+                  
+                  export -f connect recipes help
+                '';
               };
 
               services.xserver = {
@@ -191,27 +199,32 @@
               autoLogin.user = "workshop";
             };
 
-            services.xserver.displayManager.sessionCommands = ''
-              						${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --title="Workshop Terminal" \
-              							--command="bash -c '
-              								echo \"Workshop VM Ready!\"; 
-              								echo \"\";
-              								echo \"SSH into containers:\";
-              								echo \"  sudo connect hopper       # Container login\";
-              								echo \"  sudo connect curie        # Container login\";
-              								echo \"  ssh root@192.168.100.11   # Direct SSH to hopper\";
-              								echo \"  ssh root@192.168.100.12   # Direct SSH to curie\";
-              								echo \"\";
-              								echo \"Container management:\";
-              								echo \"  sudo containers           # List all containers\";
-              								echo \"  sudo logs                 # Show setup logs\";
-              								echo \"\";
-              								echo \"Abra is pre-installed in containers!\";
-              								echo \"\";
-              								bash
-              							'" &
-              					'';
-
+             services.xserver.displayManager.sessionCommands = ''
+               ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --title="Workshop Terminal" \
+                 --command="bash -c '
+                   echo "Workshop VM Ready!";
+                   echo "";
+                   echo "SSH into containers:";
+                   ${builtins.concatStringsSep "
+" (map (name:
+                     let ip = "192.168.100.${toString (11 + (builtins.elemAt (builtins.genList (x: x) (builtins.length participantNames))
+                       (builtins.elemAt
+                         (builtins.filter (i: builtins.elemAt participantNames i == name)
+                           (builtins.genList (x: x) (builtins.length participantNames))) 0)))}";
+                     in "echo \"  sudo connect ${name}       # Container login to ${name}\""
+                   ) participantNames)}
+                   echo "  (Total: ${toString numParticipants} containers)";
+                   echo "";
+                   echo "Container management:";
+                   echo "  sudo containers           # List all containers";
+                   echo "  sudo logs                 # Show setup logs";
+                   echo "  sudo recipes              # Show available recipes";
+                   echo "";
+                   echo "Abra is pre-installed in containers!";
+                   echo "";
+                   bash
+                 '" &
+             '';
             environment.systemPackages = with pkgs; [
               firefox
               curl
@@ -220,25 +233,73 @@
               nano
               tree
               nixos-container
+              
               (pkgs.writeScriptBin "connect" ''
-                							#!/bin/bash
-                							if [ -z "$1" ]; then
-                								echo "Usage: connect <container-name>"
-                								echo "Available: hopper curie"
-                								exit 1
-                							fi
-                							exec nixos-container root-login "$1"
-                						'')
+                #!/bin/bash
+                if [ -z "$1" ]; then
+                  echo "Usage: connect <container-name>"
+                  echo "Available: ${builtins.concatStringsSep " " participantNames}"
+                  exit 1
+                fi
+                exec nixos-container root-login "$1"
+              '')
+              
               (pkgs.writeScriptBin "containers" ''
-                							#!/bin/bash
-                							exec nixos-container list
-                						'')
+                #!/bin/bash
+                echo "Active containers:"
+                nixos-container list
+              '')
+              
               (pkgs.writeScriptBin "logs" ''
-                							#!/bin/bash
-                							exec journalctl -u container@hopper -u container@curie -f
-                						'')
+                #!/bin/bash
+                echo "Showing logs for all containers (Ctrl+C to exit)"
+                exec journalctl -u container@* -f
+              '')
+              
+              (pkgs.writeScriptBin "recipes" ''
+                #!/bin/bash
+                echo "Available Co-op Cloud Recipes"
+                echo "Content Management:"
+                echo "  wordpress ghost hedgedoc dokuwiki mediawiki"
+                echo "File & Collaboration:"
+                echo "  nextcloud seafile collabora onlyoffice"
+                echo "Communication:"
+                echo "  jitsi-meet matrix-synapse rocketchat mattermost"
+                echo "E-commerce & Business:"
+                echo "  prestashop invoiceninja kimai pretix"
+                echo "Development & Tools:"
+                echo "  gitea drone n8n gitlab jupyter-lab"
+                echo "Analytics & Monitoring:"
+                echo "  plausible matomo uptime-kuma grafana"
+                echo "Media & Social:"
+                echo "  peertube funkwhale mastodon pixelfed jellyfin"
+                echo "Usage in container:"
+                echo "  abra app new <recipe> -S --domain=myapp.<container-name>.local"
+                echo "  abra app deploy myapp.<container-name>.local"
+                echo "Browse all: https://recipes.coopcloud.tech"
+              '')
+              
+              (pkgs.writeScriptBin "help" ''
+                #!/bin/bash
+                echo "CODE CRISPIES Workshop VM Commands:"
+                echo ""
+                echo "Container Management:"
+                echo "  connect <name>  - SSH into specific container"
+                echo "  containers      - List all containers with IPs"
+                echo "  logs            - Show container setup logs"
+                echo ""
+                echo "Workshop Tools:"
+                echo "  recipes         - Show available Co-op Cloud recipes"
+                echo "  help            - Show this help"
+                echo ""
+                echo "Examples:"
+                echo "  sudo connect hopper"
+                echo "  ssh root@192.168.100.11"
+                echo ""
+                echo "Available containers: ${builtins.concatStringsSep " " participantNames}"
+              '')    
             ];
-
+            # Add local DNS resolution for .local domains
             networking = {
               hostName = "workshop-vm";
               firewall.enable = false;
@@ -247,6 +308,12 @@
                 internalInterfaces = [ "ve-+" ];
                 externalInterface = "eth0";
               };
+              extraHosts = builtins.concatStringsSep "\n" (builtins.genList (i: 
+                let 
+                  name = builtins.elemAt participantNames i;
+                  ip = "192.168.100.${toString (11 + i)}";
+                in "${ip} ${name}.local"
+              ) (builtins.length participantNames));
             };
 
             containers = builtins.listToAttrs (builtins.genList
@@ -266,10 +333,10 @@
                     config = {
                       system.stateVersion = "25.05";
 
-                      users.users.root.password = "root";
+                      users.users.root.password = "";
                       users.users.workshop = {
                         isNormalUser = true;
-                        password = "workshop";
+                        password = "";
                         extraGroups = [ "wheel" "docker" ];
                       };
 
@@ -278,6 +345,7 @@
                         settings = {
                           PasswordAuthentication = true;
                           PermitRootLogin = "yes";
+                          PermitEmptyPasswords = true;
                         };
                       };
 
@@ -288,6 +356,7 @@
                       };
 
                       security.sudo.wheelNeedsPassword = false;
+                      security.pam.services.login.allowNullPassword = true;
                       virtualisation.docker.enable = true;
 
                       environment.systemPackages = with pkgs; [
@@ -304,43 +373,43 @@
                         after = [ "network-online.target" "docker.service" ];
                         wants = [ "network-online.target" ];
                         script = ''
-                          											echo "Setting up ${name} container..."
-                          											
-                          											for i in {1..10}; do
-                          												if ${pkgs.curl}/bin/curl -s --max-time 5 google.com >/dev/null 2>&1; then
-                          													echo "Network ready"
-                          													break
-                          												fi
-                          												echo "Waiting for network... ($i/10)"
-                          												sleep 2
-                          											done
-                          											
-                          											${pkgs.docker}/bin/docker swarm init --advertise-addr ${ip} || true
-                          											
-                          											export HOME=/root
-                          											if [ ! -f /root/.local/bin/abra ]; then
-                          												echo "Installing abra..."
-                          												${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | ${pkgs.bash}/bin/bash
-                          												echo "Abra installed"
-                          											fi
-                          											
-                          											if ! grep -q "/.local/bin" /root/.bashrc 2>/dev/null; then
-                          												echo 'export PATH="$HOME/.local/bin:$PATH"' >> /root/.bashrc
-                          											fi
-                          											
-                          											if [ -f /root/.local/bin/abra ]; then
-                          												ln -sf /root/.local/bin/abra /usr/local/bin/abra 2>/dev/null || true
-                          											fi
-                          											
-                          											if [ -f /root/.local/bin/abra ]; then
-                          												export PATH="/root/.local/bin:$PATH"
-                          												/root/.local/bin/abra server add ${name}.local 2>/dev/null || true
-                          											fi
-                          											
-                          											echo "${name} container ready!"
-                          											echo "SSH: ssh root@${ip} (password: root)"
-                          											echo "Abra: Available via 'abra' command"
-                          										'';
+                          echo "Setting up ${name} container..."
+                          
+                          for i in {1..10}; do
+                            if ${pkgs.curl}/bin/curl -s --max-time 5 google.com >/dev/null 2>&1; then
+                              echo "Network ready"
+                              break
+                            fi
+                            echo "Waiting for network... ($i/10)"
+                            sleep 2
+                          done
+                          
+                          ${pkgs.docker}/bin/docker swarm init --advertise-addr ${ip} || true
+                          
+                          export HOME=/root
+                          if [ ! -f /root/.local/bin/abra ]; then
+                            echo "Installing abra..."
+                            ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | ${pkgs.bash}/bin/bash
+                            echo "Abra installed"
+                          fi
+                          
+                          if ! grep -q "/.local/bin" /root/.bashrc 2>/dev/null; then
+                            echo 'export PATH="$HOME/.local/bin:$PATH"' >> /root/.bashrc
+                          fi
+                          
+                          if [ -f /root/.local/bin/abra ]; then
+                            ln -sf /root/.local/bin/abra /usr/local/bin/abra 2>/dev/null || true
+                          fi
+                          
+                          if [ -f /root/.local/bin/abra ]; then
+                            export PATH="/root/.local/bin:$PATH"
+                            /root/.local/bin/abra server add ${name}.local 2>/dev/null || true
+                          fi
+                          
+                          echo "${name} container ready!"
+                          echo "SSH: ssh root@${ip} (no password)"
+                          echo "Abra: Available via 'abra' command"
+                        '';
                         serviceConfig = {
                           Type = "oneshot";
                           RemainAfterExit = true;
