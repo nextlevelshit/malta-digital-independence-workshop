@@ -20,7 +20,7 @@ help:
 	@echo "  make test-usb        - Test USB environment in QEMU"
 	@echo ""
 	@echo "🖥️ Local Development:"
-	@echo "  make local-vm        - Start single participant VM"
+	@echo "  make local-vm        - Start local VM (simulates USB environment)"
 	@echo "  make test-vm         - Test VM without GUI"
 	@echo "  make clean           - Clean build artifacts"
 	@echo ""
@@ -114,3 +114,7 @@ lint:
 	@echo "🔍 Linting project files..."
 	@markdownlint-cli . || true
 	@nixpkgs-fmt --check . || true
+
+lint-fix:
+	@echo "🎨 Formatting Nix files..."
+	@nixpkgs-fmt .

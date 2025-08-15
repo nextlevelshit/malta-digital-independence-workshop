@@ -80,9 +80,7 @@ The VM simulates the USB experience with identical configuration and commands.
 **In USB/VM environments**:
 - `recipes` - Show Co-op Cloud catalog
 - `deploy <app>` - Deploy locally (e.g., `deploy wordpress`)
-- `apps` - List deployed applications  
 - `connect <server>` - SSH to cloud server
-- `cloud-deploy <app> <server>` - Direct cloud deployment
 - `desktop` - Start GUI session
 - `browser` - Launch Firefox
 
