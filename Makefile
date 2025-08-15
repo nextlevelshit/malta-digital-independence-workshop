@@ -1,38 +1,35 @@
 -include .env
 export
 
-.PHONY: help deploy-cloud build-usb flash-usb local-vm-run clean status destroy-cloud opencode lint
+.PHONY: help deploy-cloud build-usb flash-usb local-vm test-vm clean status destroy-cloud opencode lint
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
-PARTICIPANTS := $(or $(PARTICIPANTS),3)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
 
 help:
 	@echo "CODE CRISPIES Workshop Infrastructure"
 	@echo ""
-	@echo "🌍 Cloud Infrastructure (Hetzner):"
+	@echo "🌐 Cloud Infrastructure (Hetzner):"
 	@echo "  make deploy-cloud    - Deploy 15 VMs to Hetzner Cloud"
 	@echo "  make status-cloud    - Check server health"
 	@echo "  make destroy-cloud   - Destroy cloud infrastructure"
 	@echo ""
-	@echo "💾 USB Boot Drive:"
+	@echo "💾 USB Boot Drive (Single Participant Environment):"
 	@echo "  make build-usb       - Build NixOS workshop ISO"
 	@echo "  make flash-usb       - Flash ISO to USB drive"
+	@echo "  make test-usb        - Test USB environment in QEMU"
 	@echo ""
-	@echo "🖥️  Local Development:"
-	@echo "  make local-vm-run    - Start local VM with containers"
-	@echo "  make local-vm-test   - Test with 2 containers only"
-	@echo "  make local-vm-full   - Test with all 15 containers"
+	@echo "🖥️ Local Development:"
+	@echo "  make local-vm        - Start single participant VM"
+	@echo "  make test-vm         - Test VM without GUI"
 	@echo "  make clean           - Clean build artifacts"
 	@echo ""
-	@echo "⚙️  Development:"
+	@echo "⚙️ Development:"
 	@echo "  make opencode        - Start opencode in dev shell"
 	@echo "  make lint            - Run linting checks"
-	@echo "  make check-vm        - Verify VM builds correctly"
 	@echo ""
 	@echo "Current Config:"
 	@echo "  Domain: $(DOMAIN)"
-	@echo "  Participants: $(PARTICIPANTS)"
 	@echo "  USB Device: $(USB_DEVICE)"
 	@echo ""
 	@echo "Required: HCLOUD_TOKEN, SSH key at ~/.ssh/id_ed25519.pub"
@@ -53,89 +50,67 @@ flash-usb: build-usb
 		echo "❌ Set USB_DEVICE=/dev/sdX (find with 'lsblk')"; \
 		exit 1; \
 	fi
-	@echo "⚠️  About to flash $(USB_DEVICE) - THIS WILL ERASE ALL DATA!"
+	@echo "⚠️ About to flash $(USB_DEVICE) - THIS WILL ERASE ALL DATA!"
 	@echo "Device info: $$(lsblk $(USB_DEVICE) 2>/dev/null || echo 'DEVICE NOT FOUND')"
 	@read -p "Continue? [y/N]: " confirm && [ "$$confirm" = "y" ]
 	sudo dd if=result/iso/nixos.iso of=$(USB_DEVICE) bs=4M status=progress oflag=sync
 	sync
-	@echo "✅ USB drive ready for workshop!"
+	@echo "✅ USB drive ready!"
+
+test-usb: build-usb
+	@echo "🧪 Testing USB environment in QEMU..."
+	qemu-system-x86_64 \
+		-cdrom result/iso/nixos.iso \
+		-m 2048 \
+		-enable-kvm \
+		-netdev user,id=net0 \
+		-device virtio-net,netdev=net0 \
+		-display gtk
+
+local-vm:
+	@echo "🖥️ Starting workshop VM..."
+	nix run .#local-vm
+
+test-vm:
+	@echo "🧪 Testing VM build..."
+	nix build .#local-vm
+	@echo "✅ VM builds successfully"
 
 deploy-cloud:
 	@if [ -z "$(HCLOUD_TOKEN)" ]; then \
 		echo "❌ HCLOUD_TOKEN not set"; \
-		echo "Get token from: https://console.hetzner.cloud/"; \
 		exit 1; \
 	fi
-	@if [ ! -f ~/.ssh/id_ed25519.pub ]; then \
-		echo "❌ SSH key not found at ~/.ssh/id_ed25519.pub"; \
-		echo "Generate with: ssh-keygen -t ed25519"; \
-		exit 1; \
-	fi
-	@echo "🚀 Deploying 15 workshop servers to Hetzner Cloud..."
-	@echo "Domain: $(DOMAIN)"
+	@echo "🚀 Deploying 15 workshop servers..."
 	cd terraform && terraform init
 	cd terraform && terraform apply -auto-approve \
 		-var="hcloud_token=$(HCLOUD_TOKEN)" \
-		-var="hetzner_dns_token=$(HETZNER_DNS_TOKEN)" \
-		-var="dns_zone_id=$(DNS_ZONE_ID)" \
-		-var="domain=$(DOMAIN)" \
-		-var="ssh_public_key=$$(cat ~/.ssh/id_ed25519.pub)"
-	@echo "⏳ Running health checks..."
-	@sleep 60
-	$(MAKE) status-cloud
-	@echo "✅ Cloud deployment complete!"
+		-var="domain=$(DOMAIN)"
 
 status-cloud:
-	@echo "🔍 Checking server health..."
+	@echo "📊 Checking server health..."
 	@for name in hopper curie lovelace noether hamilton franklin johnson clarke goldberg liskov wing rosen shaw karp rich; do \
 		printf "%-10s " "$$name:"; \
-		if timeout 10 curl -s -f https://traefik.$$name.$(DOMAIN)/ping >/dev/null 2>&1; then \
+		if timeout 5 ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no workshop@$$name.$(DOMAIN) "echo ok" >/dev/null 2>&1; then \
 			echo "✅ Ready"; \
-		elif timeout 5 ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no workshop@$$name.$(DOMAIN) "echo ok" >/dev/null 2>&1; then \
-			echo "⏳ SSH OK, Traefik starting..."; \
 		else \
 			echo "❌ Not ready"; \
 		fi; \
 	done
 
 destroy-cloud:
-	@echo "⚠️  This will destroy ALL workshop servers!"
+	@echo "⚠️ This will destroy ALL workshop servers!"
 	@read -p "Continue? [y/N]: " confirm && [ "$$confirm" = "y" ]
 	cd terraform && terraform destroy -auto-approve
-	@echo "✅ Cloud infrastructure destroyed"
-
-local-vm-run:
-	@echo "🖥️  Starting local workshop VM with $(PARTICIPANTS) containers..."
-	@echo "VM will open with desktop showing all participant containers"
-	PARTICIPANTS=$(PARTICIPANTS) nix run --impure .#local-vm
-
-local-vm-test:
-	@echo "🧪 Testing with 2 containers only..."
-	PARTICIPANTS=2 nix run --impure .#local-vm
-
-local-vm-full:
-	@echo "🚀 Testing with all 15 containers (heavy resource usage!)..."
-	PARTICIPANTS=15 nix run --impure .#local-vm
-
-check-vm:
-	@echo "✅ Verifying VM builds correctly..."
-	PARTICIPANTS=2 nix build --impure .#local-vm
-	@echo "✅ VM build successful"
 
 clean:
 	rm -rf result .direnv terraform/.terraform terraform/terraform.tfstate*
 	@echo "🧹 Cleaned up build artifacts"
 
 opencode:
-	@echo "💻 Starting opencode in Nix dev shell..."
 	nix develop --command opencode
 
 lint:
 	@echo "🔍 Linting project files..."
-	@echo "Markdown files..."
 	@markdownlint-cli . || true
-	@echo "JSON files..."
-	@find . -type f -name "*.json" -print0 | xargs -0 -I {} bash -c 'jq . "{}" >/dev/null || (echo "JSON lint error in {}" && exit 1)'
-	@echo "Nix files..."
 	@nixpkgs-fmt --check . || true
-	@echo "✅ Linting complete"
