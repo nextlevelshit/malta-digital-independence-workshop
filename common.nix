@@ -54,7 +54,7 @@ isoConfig // {
       server = [ "8.8.8.8" "1.1.1.1" ];
       
       # Listen on all interfaces (important for VM/container access)
-      listen-address = [ "127.0.0.1" "0.0.0.0" ];
+      listen-address = [ "127.0.0.1" ];
       
       # Bind to interfaces
       bind-interfaces = true;
@@ -64,6 +64,8 @@ isoConfig // {
       
       # Cache settings
       cache-size = 1000;
+      log-queries = true;
+      log-dhcp = true;
       
       # Local domain handling
       local = "/workshop.local/";
@@ -258,11 +260,11 @@ isoConfig // {
         # Create abra context if not exists
         if ! abra server ls 2>/dev/null | grep -q "workshop-local"; then
           echo "🏗 Creating local abra context..."
-          abra server add workshop-local docker://localhost --local
+          abra server add --local
         fi
-        echo "🚀 Deploying Traefik..."
-        abra app new traefik -S --domain=traefik.workshop.local --server=workshop-local
-        abra app deploy traefik.workshop.local
+				#echo "🚀 Deploying Traefik..."
+				#abra app new traefik -S --domain=traefik.workshop.local --server=workshop-local
+				#abra app deploy traefik.workshop.local
         
         # Wait for Traefik to be ready
         echo "⏳ Waiting for Traefik to start..."
