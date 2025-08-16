@@ -23,6 +23,7 @@ This file provides guidelines for AI coding agents operating within this reposit
 - **Domain**: Use `codecrispi.es` consistently across all environments
 - **Password Policy**: Minimize password usage; prefer key-based authentication
 - **Error Handling**: Handle errors explicitly. Use Nix's error reporting mechanisms.
+- **Commit Messages**: Use conventional commit style (`type: subject`). Avoid scopes like `(makefile)`. The subject should be in lowercase.
 
 ## Container Architecture
 

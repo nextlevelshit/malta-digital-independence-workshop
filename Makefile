@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: help deploy-cloud build-usb flash-usb local-vm test-vm clean status destroy-cloud opencode lint
+.PHONY: help deploy-cloud build-usb flash-usb vm-run vm-build clean status destroy-cloud opencode lint
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
@@ -20,8 +20,9 @@ help:
 	@echo "  make test-usb        - Test USB environment in QEMU"
 	@echo ""
 	@echo "🖥️ Local Development:"
-	@echo "  make local-vm        - Start local VM (simulates USB environment)"
-	@echo "  make test-vm         - Test VM without GUI"
+	@echo "  make vm-run          - Start local VM (simulates USB environment)"
+	@echo "  make vm              - Alias for vm-run"
+	@echo "  make vm-build        - Test VM without GUI"
 	@echo "  make clean           - Clean build artifacts"
 	@echo ""
 	@echo "⚙️ Development:"
@@ -67,11 +68,13 @@ test-usb: build-usb
 		-device virtio-net,netdev=net0 \
 		-display gtk
 
-local-vm:
+vm-run:
 	@echo "🖥️ Starting workshop VM..."
 	nix run .#local-vm
 
-test-vm:
+vm: vm-run
+
+vm-build:
 	@echo "🧪 Testing VM build..."
 	nix build .#local-vm
 	@echo "✅ VM builds successfully"
