@@ -167,44 +167,41 @@ isoConfig // {
     wants = [ "network-online.target" ];
     script = ''
       export HOME=/home/workshop
-
+      export PATH="/run/current-system/sw/bin:/usr/bin:/bin"
       # Wait for network and services with better testing
       echo "Waiting for services to start..."
       for i in {1..30}; do
         # Test external connectivity
-        if ${pkgs.curl}/bin/curl -s --max-time 3 google.com >/dev/null 2>&1; then
+        if /run/current-system/sw/bin/curl -s --max-time 3 google.com >/dev/null 2>&1; then
           echo "✅ External network ready"
           break
         fi
         sleep 2
       done
-
       # Test DNS resolution specifically
       for i in {1..20}; do
-        if ${pkgs.dnsutils}/bin/nslookup test.workshop.local 127.0.0.1 >/dev/null 2>&1; then
+        if /run/current-system/sw/bin/nslookup test.workshop.local 127.0.0.1 >/dev/null 2>&1; then
           echo "✅ Wildcard DNS ready"
           break
         fi
         echo "🔄 Waiting for DNS... (attempt $i)"
         sleep 2
       done
-
       # Test Docker
       for i in {1..10}; do
-        if ${pkgs.docker}/bin/docker info >/dev/null 2>&1; then
+        if /run/current-system/sw/bin/docker info >/dev/null 2>&1; then
           echo "✅ Docker ready"
           break
         fi
         sleep 2
       done
-
       # Install abra for workshop user
       if [ ! -f /home/workshop/.local/bin/abra ]; then
         echo "🚀 Installing abra for user workshop..."
-        ${pkgs.util-linux}/bin/su - workshop -c "mkdir -p /home/workshop/.local/bin"
+        /usr/bin/su - workshop -c "mkdir -p /home/workshop/.local/bin"
         # Run installer and log output
         install_log="/tmp/abra-install.log"
-        ${pkgs.util-linux}/bin/su - workshop -c "bash -c \"cd /home/workshop && ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | bash\"" &> "$install_log"
+        /usr/bin/su - workshop -c "bash -c \"cd /home/workshop && /run/current-system/sw/bin/curl -fsSL https://install.abra.coopcloud.tech | bash\"" &> "$install_log"
         if [ -f /home/workshop/.local/bin/abra ]; then
           echo "✅ abra installed successfully."
         else
@@ -213,13 +210,12 @@ isoConfig // {
       else
         echo "✅ abra already installed."
       fi
-
       # Initialize Docker Swarm
       echo "🔄 Checking Docker Swarm status..."
-      if ! ${pkgs.docker}/bin/docker info | grep -q "Swarm: active"; then
+      if ! /run/current-system/sw/bin/docker info | grep -q "Swarm: active"; then
         echo "🔥 Initializing Docker Swarm..."
-        ${pkgs.docker}/bin/docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
-        if ${pkgs.docker}/bin/docker info | grep -q "Swarm: active"; then
+        /run/current-system/sw/bin/docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
+        if /run/current-system/sw/bin/docker info | grep -q "Swarm: active"; then
           echo "✅ Docker Swarm initialized."
         else
           echo "❌ Docker Swarm initialization failed."
@@ -227,38 +223,38 @@ isoConfig // {
       else
         echo "✅ Docker Swarm already active."
       fi
-
       # Ensure workshop user is in docker group
       echo "🔄 Ensuring workshop user is in docker group..."
-      ${pkgs.shadow}/bin/${pkgs.shadow}/bin/usermod -aG docker workshop
+      /usr/bin/usermod -aG docker workshop
       if id -nG workshop | grep -q "docker"; then
         echo "✅ workshop user is in docker group."
       else
         echo "❌ Failed to add workshop user to docker group."
       fi
-
       # Create proper abra server configuration
       if [ ! -f /home/workshop/.abra/servers/workshop.local.env ]; then
-        ${pkgs.util-linux}/bin/su - workshop -c "mkdir -p /home/workshop/.abra/servers/"
+        /usr/bin/su - workshop -c "mkdir -p /home/workshop/.abra/servers/"
       fi
-
       # Set up autocomplete
       if command -v abra &> /dev/null; then
-        ${pkgs.util-linux}/bin/su - workshop -c "source <\(/home/workshop/.local/bin/abra autocomplete bash\)"
+        /usr/bin/su - workshop -c "source <(/home/workshop/.local/bin/abra autocomplete bash)"
       fi
-
       # Test final DNS resolution
-      if ${pkgs.dnsutils}/bin/nslookup test.workshop.local 127.0.0.1; then
+      if /run/current-system/sw/bin/nslookup test.workshop.local 127.0.0.1; then
         echo "🎉 All services ready!"
       else
-        echo "⚠️  DNS may need manual restart: sudo systemctl restart dnsmasq"
+        echo "⚠️ DNS may need manual restart: sudo systemctl restart dnsmasq"
       fi
     '';
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
       User = "root";
+      Environment = [
+        "PATH=/run/current-system/sw/bin:/usr/bin:/bin"
+      ];
     };
+  };
   };
 
   # Enhanced bash configuration with complete recipe support
