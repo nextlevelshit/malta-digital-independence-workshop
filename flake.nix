@@ -17,7 +17,7 @@
       # Server names for cloud connections
       cloudServerNames = [
         "hopper"
-        "curie" 
+        "curie"
         "lovelace"
         "noether"
         "hamilton"
@@ -34,8 +34,8 @@
       ];
 
       # Common configuration
-      commonConfig = { isLiveIso ? false }: 
-        import ./common.nix { 
+      commonConfig = { isLiveIso ? false }:
+        import ./common.nix {
           inherit pkgs cloudServerNames isLiveIso;
         };
     in
@@ -64,39 +64,41 @@
         inherit system;
         modules = [
           "${nixpkgs}/nixos/modules/virtualisation/qemu-vm.nix"
-          
+
           (commonConfig { isLiveIso = false; })
-          
+
           ({ config, pkgs, lib, ... }: {
-             boot.loader.grub.enable = false;
-             boot.loader.generic-extlinux-compatible.enable = true;
+            boot.loader.grub.enable = false;
+            boot.loader.generic-extlinux-compatible.enable = true;
 
-             # Enable networking for VM
-             networking.hostName = "workshop-vm";
-             networking.networkmanager.enable = true;
-             networking.firewall.enable = false;
+            # Enable networking for VM
+            networking.hostName = "workshop-vm";
+            networking.networkmanager.enable = true;
+            networking.firewall.enable = false;
 
-             # Hybrid console configuration - serial primary, GUI available
-             boot.kernelParams = [ "console=ttyS0,115200" "console=tty1" ];
+            # Hybrid console configuration - serial primary, GUI available
+            boot.kernelParams = [ "console=ttyS0,115200" "console=tty1" ];
 
-             # VM specific settings
-             virtualisation.memorySize = 4096;
-             virtualisation.diskSize = 40000;
+            # VM specific settings
+            virtualisation.memorySize = 4096;
+            virtualisation.diskSize = 40000;
 
-             # Hybrid mode: GUI available but serial console primary
-             virtualisation.qemu.options = [
-               "-display" "gtk"
-               "-monitor" "stdio"
-             ];
-             # Fix the auto-login conflict with mkForce
-             services.displayManager.autoLogin = lib.mkForce {
-               enable = true;
-               user = "workshop";
-             };
-             # Keep GUI session commands for when GUI is used
-             services.xserver.displayManager.sessionCommands = ''
-               ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --fullscreen --title="Workshop Terminal" &
-             '';
+            # Hybrid mode: GUI available but serial console primary
+            virtualisation.qemu.options = [
+              "-display"
+              "gtk"
+              "-monitor"
+              "stdio"
+            ];
+            # Fix the auto-login conflict with mkForce
+            services.displayManager.autoLogin = lib.mkForce {
+              enable = true;
+              user = "workshop";
+            };
+            # Keep GUI session commands for when GUI is used
+            services.xserver.displayManager.sessionCommands = ''
+              ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --fullscreen --title="Workshop Terminal" &
+            '';
           })
         ];
       };
