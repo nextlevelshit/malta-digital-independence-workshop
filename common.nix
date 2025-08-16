@@ -202,10 +202,9 @@ isoConfig // {
       if [ ! -f /home/workshop/.local/bin/abra ]; then
         echo "🚀 Installing abra for user workshop..."
         sudo -u workshop mkdir -p /home/workshop/.local/bin
-        cd /home/workshop
         # Run installer and log output
         install_log="/tmp/abra-install.log"
-        sudo -u workshop ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | sudo -u workshop ${pkgs.bash}/bin/bash &> "$install_log"
+        sudo -u workshop ${pkgs.bash}/bin/bash -c "cd /home/workshop && ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | ${pkgs.bash}/bin/bash" &> "$install_log"
         if [ -f /home/workshop/.local/bin/abra ]; then
           echo "✅ abra installed successfully."
         else
