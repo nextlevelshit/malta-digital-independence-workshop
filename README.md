@@ -1,4 +1,4 @@
-# 🪐 CODE CRISPIES Workshop Infrastructure
+# 🚀 CODE CRISPIES Workshop Infrastructure
 
 Single-participant learning environments with local practice and cloud deployment capabilities.
 
@@ -6,7 +6,7 @@ Single-participant learning environments with local practice and cloud deploymen
 
 ```bash
 # 1. Start local VM for development/testing
-make local-vm
+make vm-run
 
 # 2. Build USB drives for participants  
 make build-usb
@@ -21,9 +21,10 @@ make deploy-cloud
 
 ### Local Practice (USB/VM)
 ```bash
+setup-traefik              # REQUIRED: Setup local proxy first!
 recipes                    # Show available apps
 deploy wordpress           # Deploy locally  
-browser                    # View at wordpress.workshop.local
+browser wordpress          # Open directly in Firefox
 ```
 
 ### Cloud Deployment
@@ -34,21 +35,24 @@ abra app new wordpress -S --domain=blog.hopper.codecrispi.es
 abra app deploy blog.hopper.codecrispi.es
 ```
 
-## 🏗️ Architecture
+## 🗃️ Architecture
 
 **Single Participant Model**: Each environment (USB/VM) is complete and self-contained.
 
 - **USB Boot**: Bootable NixOS with Docker + abra for hands-on learning
 - **Local VM**: Identical environment for development/testing  
 - **Cloud Servers**: 15 production servers (hopper, curie, lovelace, etc.)
+- **Wildcard DNS**: `*.workshop.local` resolves to `127.0.0.1` via dnsmasq
 
 ## 💾 USB Environment
 
 Pre-configured with:
 - Docker Swarm + abra installation
 - SSH client for cloud access
+- Wildcard DNS resolution (dnsmasq)
 - Terminal-first interface (`desktop` command for GUI)
-- Helper commands: `recipes`, `deploy`, `connect`, `help`
+- Helper commands: `recipes`, `deploy`, `connect`, `browser`, `help`
+- Tab completion for all commands
 
 Build and flash:
 ```bash
@@ -69,20 +73,76 @@ make status-cloud  # Check health
 ## 🖥️ Local Development
 
 ```bash
-make local-vm      # Start VM
-make test-vm       # Verify build
+make vm-run        # Start VM
+make vm-build      # Verify build
 ```
 
 The VM simulates the USB experience with identical configuration and commands.
 
-## 📚 Available Commands
+## 📚 Complete Recipe Catalog
+
+Based on Co-op Cloud with quality scoring:
+
+### ⭐ Tier 1 - Production Ready (Score 5)
+- **gitea** - Self-hosted Git service
+- **nextcloud** - Personal cloud storage & collaboration  
+- **mealie** - Recipe manager and meal planner
+
+### 🔧 Tier 2 - Stable (Score 4)
+- **gotosocial** - Lightweight Fediverse server
+- **wordpress** - Website & blog platform
+
+### 🧪 Tier 3 - Community (Score 3)
+- **collabora** - Online office suite
+- **croc** - File transfer tool
+- **custom-php** - Custom PHP applications
+- **dokuwiki** - Simple wiki software
+- **engelsystem** - Event coordination
+- **fab-manager** - FabLab management
+- **ghost** - Professional publishing platform
+- **karrot** - Grassroots initiatives platform
+- **lauti** - Calendar software for events
+- **loomio** - Collaborative decision-making
+- **mattermost** / **mattermost-lts** - Team collaboration
+- **mrbs** - Meeting room booking system
+- **onlyoffice** - Document editing suite
+- **open-inventory** - Inventory management
+- **outline** - Team knowledge base
+- **owncast** - Self-hosted live streaming
+- **rallly** - Group meeting scheduler
+
+### 🌐 Extended Catalog
+- **Content**: hedgedoc, mediawiki, seafile
+- **Communication**: jitsi-meet, matrix-synapse, rocketchat  
+- **Business**: prestashop, invoiceninja, kimai, pretix
+- **Development**: drone, n8n, gitlab, jupyter-lab
+- **Analytics**: plausible, matomo, uptime-kuma, grafana
+- **Media & Social**: peertube, funkwhale, mastodon, pixelfed, jellyfin
+
+## 📚 Enhanced Commands
 
 **In USB/VM environments**:
-- `recipes` - Show Co-op Cloud catalog
-- `deploy <app>` - Deploy locally (e.g., `deploy wordpress`)
-- `connect <server>` - SSH to cloud server
+- `setup-traefik` - **REQUIRED FIRST**: Setup local DNS proxy
+- `recipes` - Show complete Co-op Cloud catalog
+- `deploy <app>` - Deploy locally with tab completion
+- `browser [app]` - Launch Firefox [to specific app]
+- `connect <server>` - SSH to cloud server with tab completion  
 - `desktop` - Start GUI session
-- `browser` - Launch Firefox
+- `help` - Show all commands and debug info
+
+**Examples**:
+```bash
+# Deploy and open WordPress
+deploy wordpress
+browser wordpress          # Opens http://wordpress.workshop.local
+
+# Just open browser
+browser                     # Opens blank page
+
+# Use tab completion
+deploy <TAB>               # Shows all available recipes
+connect <TAB>              # Shows all available servers
+```
 
 ## 🔧 Prerequisites
 
@@ -96,4 +156,20 @@ The VM simulates the USB experience with identical configuration and commands.
 ```bash
 make clean         # Local artifacts
 make destroy-cloud # Cloud infrastructure
+```
+
+## 🔍 Troubleshooting
+
+```bash
+# Check DNS resolution
+dig @127.0.0.1 test.workshop.local
+
+# Check running services  
+docker service ls
+
+# Check DNS service
+systemctl status dnsmasq
+
+# Restart if needed
+sudo systemctl restart dnsmasq
 ```

@@ -115,9 +115,9 @@ opencode:
 
 lint:
 	@echo "🔍 Linting project files..."
-	@markdownlint-cli . || true
-	@nixpkgs-fmt --check . || true
+	@nix develop -c markdownlint-cli . || true
+	@nix develop -c nixpkgs-fmt --check . || true
 
 lint-fix:
 	@echo "🎨 Formatting Nix files..."
-	@nixpkgs-fmt .
+	@nix develop -c nixpkgs-fmt .
