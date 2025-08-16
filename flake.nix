@@ -68,28 +68,30 @@
           (commonConfig { isLiveIso = false; })
           
           ({ config, pkgs, lib, ... }: {
-            boot.loader.grub.enable = false;
-            boot.loader.generic-extlinux-compatible.enable = true;
+             boot.loader.grub.enable = false;
+             boot.loader.generic-extlinux-compatible.enable = true;
 
-            # Enable networking for VM
-            networking.hostName = "workshop-vm";
-            networking.networkmanager.enable = true;
-            networking.firewall.enable = false;
+             # Enable networking for VM
+             networking.hostName = "workshop-vm";
+             networking.networkmanager.enable = true;
+             networking.firewall.enable = false;
 
-            # Fix the auto-login conflict with mkForce
-            services.displayManager.autoLogin = lib.mkForce {
-              enable = true;
-              user = "workshop";
-            };
+             # Serial console configuration - the RIGHT way
+             boot.kernelParams = [ "console=ttyS0,115200" "console=tty1" ];
 
-            # Auto-start terminal with welcome message
-            services.xserver.displayManager.sessionCommands = ''
-              ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --fullscreen --title="Workshop Terminal" &
-            '';
+             # VM specific settings
+             virtualisation.memorySize = 4096;
+             virtualisation.diskSize = 40000;
 
-            # VM specific settings
-            virtualisation.memorySize = 4096; # 4GB RAM
-            virtualisation.diskSize = 40000; # 40GB disk
+             # Force serial console as primary
+             virtualisation.qemu.options = [
+               "-nographic"
+             ];
+             # Fix the auto-login conflict with mkForce
+             services.displayManager.autoLogin = lib.mkForce {
+               enable = true;
+               user = "workshop";
+             };
           })
         ];
       };
