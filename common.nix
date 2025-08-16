@@ -255,7 +255,6 @@ isoConfig // {
       ];
     };
   };
-  };
 
   # Enhanced bash configuration with complete recipe support
   programs.bash = {
