@@ -35,33 +35,48 @@ isoConfig // {
   system.stateVersion = "25.05";
 
   networking = {
-    wireless.enable = true;
-    networkmanager.enable = true;
+    wireless.enable = false;  # Disable to avoid conflicts
+    networkmanager = {
+      enable = true;
+      dns = "none";  # Critical: Don't let NetworkManager manage DNS
+    };
     hostName = if isLiveIso then "workshop-live" else "workshop-vm";
   };
 
-  # Enable dnsmasq for wildcard DNS resolution
+  # Configure dnsmasq properly for wildcard DNS
   services.dnsmasq = {
     enable = true;
     settings = {
       # Wildcard: *.workshop.local -> 127.0.0.1
-      address = [
-        "/.workshop.local/127.0.0.1"
-      ];
-      # Don't forward queries for .local domains upstream
-      local = [
-        "/workshop.local/"
-      ];
-      # Listen on all interfaces
-      listen-address = "127.0.0.1";
-      # Don't read /etc/hosts (we want full control)
-      no-hosts = true;
+      address = "/.workshop.local/127.0.0.1";
+      
+      # Use upstream DNS for everything else
+      server = [ "8.8.8.8" "1.1.1.1" ];
+      
+      # Listen on all interfaces (important for VM/container access)
+      listen-address = [ "127.0.0.1" "0.0.0.0" ];
+      
+      # Bind to interfaces
+      bind-interfaces = true;
+      
+      # Don't read /etc/hosts for our custom domains
+      no-hosts = false;
+      
+      # Cache settings
+      cache-size = 1000;
+      
+      # Local domain handling
+      local = "/workshop.local/";
+      domain-needed = true;
+      bogus-priv = true;
     };
   };
 
-  # Configure NetworkManager to use our dnsmasq
-  networking.networkmanager.dns = "dnsmasq";
-  networking.nameservers = [ "127.0.0.1" ];
+  # Force system to use our dnsmasq
+  networking.nameservers = lib.mkForce [ "127.0.0.1" ];
+
+  # Disable systemd-resolved to avoid conflicts
+  services.resolved.enable = false;
 
   # Enable Docker for local development
   virtualisation.docker.enable = true;
@@ -102,11 +117,31 @@ isoConfig // {
     script = ''
       export HOME=/home/workshop
       
-      # Wait for network, Docker, and DNS
+      # Wait for network and services with better testing
+      echo "Waiting for services to start..."
+      for i in {1..30}; do
+        # Test external connectivity
+        if ${pkgs.curl}/bin/curl -s --max-time 3 google.com >/dev/null 2>&1; then
+          echo "✅ External network ready"
+          break
+        fi
+        sleep 2
+      done
+      
+      # Test DNS resolution specifically
       for i in {1..20}; do
-        if ${pkgs.curl}/bin/curl -s --max-time 5 google.com >/dev/null 2>&1 && \
-           ${pkgs.docker}/bin/docker info >/dev/null 2>&1 && \
-           ${pkgs.dnsutils}/bin/dig @127.0.0.1 test.workshop.local +short | grep -q "127.0.0.1"; then
+        if ${pkgs.dnsutils}/bin/nslookup test.workshop.local 127.0.0.1 >/dev/null 2>&1; then
+          echo "✅ Wildcard DNS ready"
+          break
+        fi
+        echo "🔄 Waiting for DNS... (attempt $i)"
+        sleep 2
+      done
+      
+      # Test Docker
+      for i in {1..10}; do
+        if ${pkgs.docker}/bin/docker info >/dev/null 2>&1; then
+          echo "✅ Docker ready"
           break
         fi
         sleep 2
@@ -119,21 +154,20 @@ isoConfig // {
         sudo -u workshop ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | sudo -u workshop ${pkgs.bash}/bin/bash
       fi
       
-      # Initialize Docker Swarm with retry logic
-      for i in {1..5}; do
-        if ${pkgs.docker}/bin/docker swarm init --advertise-addr 127.0.0.1 2>/dev/null; then
-          break
-        elif ${pkgs.docker}/bin/docker info | grep -q "Swarm: active"; then
-          break
-        fi
-        sleep 2
-      done
+      # Initialize Docker Swarm
+      if ! ${pkgs.docker}/bin/docker info | grep -q "Swarm: active"; then
+        ${pkgs.docker}/bin/docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
+      fi
       
       # Ensure workshop user is in docker group
       usermod -aG docker workshop
       
-      # Create Docker network for local development
-      ${pkgs.docker}/bin/docker network create --driver bridge workshop-net 2>/dev/null || true
+      # Test final DNS resolution
+      if ${pkgs.dnsutils}/bin/nslookup test.workshop.local 127.0.0.1; then
+        echo "🎉 All services ready!"
+      else
+        echo "⚠️  DNS may need manual restart: sudo systemctl restart dnsmasq"
+      fi
     '';
     serviceConfig = {
       Type = "oneshot";
@@ -149,21 +183,16 @@ isoConfig // {
       echo "🚀 CODE CRISPIES Workshop Environment"
       echo "Mode: Local Development + Cloud Access"
       echo ""
-      echo "🏠 Local Development:"
-      echo "  setup-traefik       - Setup local Traefik (REQUIRED FIRST!)"
-      echo "  recipes             - Show available app recipes"
-      echo "  deploy <recipe>     - Deploy app locally (e.g., deploy wordpress)"
-      echo "  browser [recipe]    - Launch Firefox [to specific app]"
-      echo "  desktop             - Start GUI session"
-      echo ""
-      echo "☁️ Cloud Access:"
-      echo "  Available servers:"
-      ${builtins.concatStringsSep "\n" (map (name: 
-        "echo \"    - ${name}.codecrispi.es\""
-      ) cloudServerNames)}
-      echo "  connect <name>      - SSH to cloud server"
-      echo ""
-      echo "📚 Commands: setup-traefik | recipes | deploy | browser | connect | desktop | help"
+      
+      # Test DNS immediately on login
+      if command -v nslookup &> /dev/null; then
+        if nslookup test.workshop.local 127.0.0.1 >/dev/null 2>&1; then
+          echo "✅ DNS wildcard ready: *.workshop.local → 127.0.0.1"
+        else
+          echo "❌ DNS not working! Run: sudo systemctl restart dnsmasq"
+          echo "🔧 Debug: nslookup test.workshop.local 127.0.0.1"
+        fi
+      fi
 
       # Ensure abra is in PATH
       export PATH="$HOME/.local/bin:$PATH"
@@ -196,32 +225,41 @@ isoConfig // {
       setup-traefik() {
         echo "🔧 Setting up local Traefik proxy..."
         
+        # Test DNS first
+        if ! nslookup traefik.workshop.local 127.0.0.1 >/dev/null 2>&1; then
+          echo "❌ DNS not resolving *.workshop.local"
+          echo "🔄 Restarting dnsmasq..."
+          sudo systemctl restart dnsmasq
+          sleep 3
+          
+          if ! nslookup traefik.workshop.local 127.0.0.1 >/dev/null 2>&1; then
+            echo "❌ DNS still not working!"
+            echo "🔍 Debug info:"
+            echo "  systemctl status dnsmasq"
+            echo "  nslookup traefik.workshop.local 127.0.0.1"
+            return 1
+          fi
+        fi
+        
+        echo "✅ DNS resolution working"
+        
+        # Rest of your existing setup-traefik function...
         if ! command -v abra &> /dev/null; then
           echo "❌ Abra not found. Installing..."
           sudo systemctl restart workshop-abra-setup
           sleep 5
           export PATH="$HOME/.local/bin:$PATH"
         fi
-
-        # Test DNS resolution
-        if ! dig @127.0.0.1 test.workshop.local +short | grep -q "127.0.0.1"; then
-          echo "⚠️  DNS not ready, restarting dnsmasq..."
-          sudo systemctl restart dnsmasq
-          sleep 2
-        fi
-
         # Ensure Docker Swarm is ready
         if ! docker info 2>/dev/null | grep -q "Swarm: active"; then
-          echo "🔄 Initializing Docker Swarm..."
+          echo "🔥 Initializing Docker Swarm..."
           docker swarm init --advertise-addr 127.0.0.1 || true
         fi
-
         # Create abra context if not exists
         if ! abra server ls 2>/dev/null | grep -q "workshop-local"; then
-          echo "📝 Creating local abra context..."
+          echo "🏗 Creating local abra context..."
           abra server add workshop-local docker://localhost --local
         fi
-
         echo "🚀 Deploying Traefik..."
         abra app new traefik -S --domain=traefik.workshop.local --server=workshop-local
         abra app deploy traefik.workshop.local
@@ -230,19 +268,15 @@ isoConfig // {
         echo "⏳ Waiting for Traefik to start..."
         for i in {1..30}; do
           if curl -s http://traefik.workshop.local >/dev/null 2>&1; then
-            break
+            echo "✅ Traefik deployed! Dashboard: http://traefik.workshop.local"
+            echo "🚀 Now you can deploy apps with 'deploy <recipe>'"
+            return 0
           fi
           sleep 2
         done
         
-        if curl -s http://traefik.workshop.local >/dev/null 2>&1; then
-          echo "✅ Traefik deployed! Dashboard: http://traefik.workshop.local"
-          echo "🚀 Now you can deploy apps with 'deploy <recipe>'"
-          echo "🌐 DNS test: $(dig @127.0.0.1 traefik.workshop.local +short)"
-        else
-          echo "⚠️  Traefik deployed but may still be starting..."
-          echo "🔍 Debug: docker service ls | systemctl status dnsmasq"
-        fi
+        echo "⚠️  Traefik deployed but may still be starting..."
+        echo "🔍 Debug: docker service ls | curl -I http://traefik.workshop.local"
       }
 
       deploy() {
@@ -394,14 +428,7 @@ isoConfig // {
         echo "💡 Tab completion available for deploy, browser, connect commands"
       }
 
-      # Welcome DNS test
-      if command -v dig &> /dev/null; then
-        if dig @127.0.0.1 test.workshop.local +short 2>/dev/null | grep -q "127.0.0.1"; then
-          echo "✅ DNS wildcard ready: *.workshop.local → 127.0.0.1"
-        else
-          echo "⚠️  DNS not ready yet, services may be starting..."
-        fi
-      fi
+
     '';
   };
 
