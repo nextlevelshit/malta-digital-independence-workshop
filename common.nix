@@ -195,17 +195,22 @@ isoConfig // {
         fi
       }
 
-      desktop() {
-        echo "🖥️  Starting GUI session..."
-        if [ -z "$DISPLAY" ]; then
-          startx &
-          export DISPLAY=:0
-          sleep 3
-          echo "✅ GUI started. Run 'browser' to open Firefox"
-        else
-          echo "ℹ️  GUI already running"
-        fi
-      }
+       desktop() {
+         echo "🖥️  Starting GUI session..."
+         if command -v startx &> /dev/null; then
+           if [ -z "$DISPLAY" ]; then
+             startx &
+             export DISPLAY=:0
+             sleep 3
+             echo "✅ GUI started. Check QEMU window or run 'browser'"
+           else
+             echo "ℹ️  GUI already running"
+           fi
+         else
+           echo "💡 GUI available in QEMU window (Alt+Tab to switch)"
+           echo "🖱️  Click on QEMU graphics window to use desktop"
+         fi
+       }
 
       help() {
         echo "CODE CRISPIES Workshop Commands:"

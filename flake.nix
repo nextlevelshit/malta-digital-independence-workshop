@@ -76,22 +76,27 @@
              networking.networkmanager.enable = true;
              networking.firewall.enable = false;
 
-             # Serial console configuration - the RIGHT way
+             # Hybrid console configuration - serial primary, GUI available
              boot.kernelParams = [ "console=ttyS0,115200" "console=tty1" ];
 
              # VM specific settings
              virtualisation.memorySize = 4096;
              virtualisation.diskSize = 40000;
 
-             # Force serial console as primary
+             # Hybrid mode: GUI available but serial console primary
              virtualisation.qemu.options = [
-               "-nographic"
+               "-display" "gtk"
+               "-monitor" "stdio"
              ];
              # Fix the auto-login conflict with mkForce
              services.displayManager.autoLogin = lib.mkForce {
                enable = true;
                user = "workshop";
              };
+             # Keep GUI session commands for when GUI is used
+             services.xserver.displayManager.sessionCommands = ''
+               ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --fullscreen --title="Workshop Terminal" &
+             '';
           })
         ];
       };
