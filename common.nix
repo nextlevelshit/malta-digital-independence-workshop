@@ -201,10 +201,10 @@ isoConfig // {
       # Install abra for workshop user
       if [ ! -f /home/workshop/.local/bin/abra ]; then
         echo "🚀 Installing abra for user workshop..."
-        sudo -u workshop mkdir -p /home/workshop/.local/bin
+        ${pkgs.util-linux}/bin/su - workshop -c "mkdir -p /home/workshop/.local/bin"
         # Run installer and log output
         install_log="/tmp/abra-install.log"
-        sudo -u workshop ${pkgs.bash}/bin/bash -c "cd /home/workshop && ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | ${pkgs.bash}/bin/bash" &> "$install_log"
+        ${pkgs.util-linux}/bin/su - workshop -c "bash -c \"cd /home/workshop && ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | bash\"" &> "$install_log"
         if [ -f /home/workshop/.local/bin/abra ]; then
           echo "✅ abra installed successfully."
         else
@@ -230,7 +230,7 @@ isoConfig // {
 
       # Ensure workshop user is in docker group
       echo "🔄 Ensuring workshop user is in docker group..."
-      usermod -aG docker workshop
+      ${pkgs.shadow}/bin/${pkgs.shadow}/bin/usermod -aG docker workshop
       if id -nG workshop | grep -q "docker"; then
         echo "✅ workshop user is in docker group."
       else
@@ -239,12 +239,12 @@ isoConfig // {
 
       # Create proper abra server configuration
       if [ ! -f /home/workshop/.abra/servers/workshop.local.env ]; then
-        sudo -u workshop mkdir -p /home/workshop/.abra/servers/
+        ${pkgs.util-linux}/bin/su - workshop -c "mkdir -p /home/workshop/.abra/servers/"
       fi
 
       # Set up autocomplete
       if command -v abra &> /dev/null; then
-        sudo -u workshop source <(abra autocomplete bash)
+        ${pkgs.util-linux}/bin/su - workshop -c "source <\(/home/workshop/.local/bin/abra autocomplete bash\)"
       fi
 
       # Test final DNS resolution
