@@ -233,7 +233,7 @@ isoConfig // {
       fi
       # Create proper abra server configuration
       if [ ! -f /home/workshop/.abra/servers/workshop.local.env ]; then
-        /usr/bin/su - workshop -c "mkdir -p /home/workshop/.abra/servers/"
+        ${pkgs.util-linux}/bin/su - workshop -c "mkdir -p /home/workshop/.abra/servers/"
       fi
       # Set up autocomplete
       if command -v abra &> /dev/null; then
