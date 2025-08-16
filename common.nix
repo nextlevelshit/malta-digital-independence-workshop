@@ -70,13 +70,26 @@ in
 isoConfig // {
   system.stateVersion = "25.05";
 
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = "no";
+      PasswordAuthentication = true;
+      PubkeyAuthentication = true;
+    };
+    ports = [ 22 ];
+  };
+
   networking = {
-    wireless.enable = false; # Disable to avoid conflicts
+    wireless.enable = false;
     networkmanager = {
       enable = true;
-      dns = "none"; # Critical: Don't let NetworkManager manage DNS
+      dns = "none";
     };
     hostName = if isLiveIso then "workshop-live" else "workshop-vm";
+    hosts = {
+      "127.0.0.1" = [ "workshop.local" "localhost" ];
+    };
   };
 
   # Configure dnsmasq properly for wildcard DNS
@@ -200,6 +213,17 @@ isoConfig // {
       # Ensure workshop user is in docker group
       usermod -aG docker workshop
 
+      # Create proper abra server configuration
+      if [ ! -f /home/workshop/.abra/servers/workshop.local.env ]; then
+        sudo -u workshop mkdir -p /home/workshop/.abra/servers/
+
+        # Set up autocomplete
+        if command -v abra &> /dev/null; then
+          sudo -u workshop abra autocomplete bash > /home/workshop/.abra/autocomplete.bash
+          echo "source ~/.abra/autocomplete.bash" >> /home/workshop/.bashrc
+        fi
+      fi
+
       # Test final DNS resolution
       if ${pkgs.dnsutils}/bin/nslookup test.workshop.local 127.0.0.1; then
         echo "🎉 All services ready!"
@@ -260,113 +284,65 @@ isoConfig // {
       }
       complete -F _workshop_completion deploy browser connect
 
-      setup-traefik() {
-        echo "🔧 Setting up local Traefik proxy..."
+       setup-traefik() {
+         echo "🔧 Setting up local Traefik proxy..."
 
-          # Test DNS first
-        if ! nslookup traefik.workshop.local 127.0.0.1 >/dev/null 2>&1; then
-          echo "❌ DNS not resolving *.workshop.local"
-          echo "🔄 Restarting dnsmasq..."
-          sudo systemctl restart dnsmasq
-          sleep 3
+           # Ensure we can SSH to workshop.local first (tutorial requirement)
+         if ! ssh -o ConnectTimeout=3 -o BatchMode=yes workshop@workshop.local echo "SSH OK" 2>/dev/null; then
+           echo "⚠️  SSH to workshop.local not working, but continuing with local setup..."
+         fi
 
-          if ! nslookup traefik.workshop.local 127.0.0.1 >/dev/null 2>&1; then
-            echo "❌ DNS still not working!"
-            return 1
-          fi
-        fi
+           # DNS check
+         if ! nslookup traefik.workshop.local 127.0.0.1 >/dev/null 2>&1; then
+           echo "❌ DNS not resolving *.workshop.local"
+           sudo systemctl restart dnsmasq
+           sleep 3
+         fi
 
-        echo "✅ DNS resolution working"
+           # Docker Swarm + proxy network
+         if ! docker info 2>/dev/null | grep -q "Swarm: active"; then
+           echo "🔥 Initializing Docker Swarm..."
+           docker swarm init --advertise-addr 127.0.0.1
+         fi
 
-          # Ensure Docker Swarm is initialized
-        if ! docker info 2>/dev/null | grep -q "Swarm: active"; then
-          echo "🔥 Initializing Docker Swarm..."
-          docker swarm init --advertise-addr 127.0.0.1 || true
-          sleep 2
-        fi
+         if ! docker network ls | grep -q "proxy"; then
+           echo "📡 Creating proxy overlay network..."
+           docker network create -d overlay proxy
+         fi
 
-          # Create proxy network (CRITICAL for Traefik)
-        if ! docker network ls | grep -q "proxy"; then
-          echo "📡 Creating proxy overlay network..."
-          docker network create -d overlay proxy
-        fi
+           # Add server (tutorial step)
+         if ! abra server ls 2>/dev/null | grep -q "workshop.local"; then
+           echo "🏗 Adding workshop.local server..."
+           # Try to add as proper domain first, fallback to --local
+           abra server add workshop.local 2>/dev/null || abra server add --local
+         fi
 
-          # Ensure abra is available
-        if ! command -v abra &> /dev/null; then
-          echo "❌ Abra not found. Installing..."
-          sudo systemctl restart workshop-abra-setup
-          sleep 5
-          export PATH="$HOME/.local/bin:$PATH"
-        fi
+           # Create Traefik app (tutorial step 1)
+         if ! abra app ls 2>/dev/null | grep -q "traefik"; then
+           echo "🚀 Creating Traefik app..."
+           abra app new traefik --domain=traefik.workshop.local
+         fi
 
-          # Check current server setup
-        echo "📋 Current servers:"
-        abra server ls || echo "No servers configured"
+           # Configure Traefik (tutorial step 2)
+         echo "⚙️ Configuring Traefik..."
+         abra app config traefik.workshop.local
 
-          # Add local server if not exists (default name is "default")
-        if ! abra server ls 2>/dev/null | grep -q "default"; then
-          echo "🏗 Adding local server context..."
-          abra server add --local
-          sleep 2
-        fi
+           # Deploy Traefik (tutorial step 3)
+         echo "📦 Deploying Traefik..."
+         abra app deploy traefik.workshop.local
 
-          # Verify server is accessible
-        echo "📋 Servers after setup:"
-        abra server ls
+           # Wait and verify
+         echo "⏳ Waiting for Traefik..."
+         for i in {1..30}; do
+           if curl -s http://traefik.workshop.local >/dev/null 2>&1; then
+             echo "✅ Traefik ready! Dashboard: http://traefik.workshop.local"
+             return 0
+           fi
+           sleep 2
+         done
 
-          # Check if Traefik app already exists
-        if abra app ls 2>/dev/null | grep -q "traefik"; then
-          echo "ℹ️ Traefik already configured"
-          traefik_domain=$(abra app ls | grep traefik | awk \'{print $1}\' | head -1)
-          echo "📍 Existing Traefik: $traefik_domain"
-        else
-          echo "🚀 Creating new Traefik app..."
-
-            # Use proper server context (default, not workshop-local)
-          abra app new traefik --domain=traefik.workshop.local --server=default
-
-            # Configure Traefik environment
-          echo "⚙️ Configuring Traefik..."
-          traefik_env_file="$HOME/.abra/servers/default/traefik.workshop.local.env"
-
-          if [ -f "$traefik_env_file" ]; then
-              # Set required environment variables
-            if ! grep -q "LETS_ENCRYPT_EMAIL" "$traefik_env_file"; then
-              echo "LETS_ENCRYPT_EMAIL=workshop@local.dev" >> "$traefik_env_file"
-            fi
-            if ! grep -q "DASHBOARD_ENABLED" "$traefik_env_file"; then
-              echo "DASHBOARD_ENABLED=true" >> "$traefik_env_file"
-            fi
-          else
-            echo "⚠️ Traefik env file not found at: $traefik_env_file"
-          fi
-
-          echo "📦 Deploying Traefik..."
-          abra app deploy traefik.workshop.local
-
-          traefik_domain="traefik.workshop.local"
-        fi
-
-          # Wait for Traefik to be ready
-        echo "⏳ Waiting for Traefik to be ready..."
-        for i in {1..60}; do
-          if curl -s --connect-timeout 3 --max-time 5 http://traefik.workshop.local/ping >/dev/null 2>&1; then
-            echo "✅ Traefik is ready! Dashboard: http://traefik.workshop.local"
-            echo "🚀 You can now deploy apps with: deploy <recipe>"
-            return 0
-          fi
-
-          sleep 2
-        done
-
-        echo "⚠️ Traefik deployment timed out but may still be starting..."
-        echo ""
-        echo "🔍 Debug commands:"
-        echo "   abra app ps traefik.workshop.local"
-        echo "   abra app logs traefik.workshop.local"
-        echo "   docker service ls"
-        echo "   docker service logs \$(docker service ls --filter name=traefik -q)"
-      }
+         echo "⚠️ Traefik may still be starting. Check: abra app logs traefik.workshop.local"
+       }
 
       deploy() {
         if [ -z "$1" ]; then

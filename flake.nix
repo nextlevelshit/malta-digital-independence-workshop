@@ -89,6 +89,9 @@
               "gtk"
               "-monitor"
               "stdio"
+              # Add port forwarding for SSH
+              "-netdev" "user,id=net0,hostfwd=tcp::2222-:22"
+              "-device" "virtio-net,netdev=net0"
             ];
             # Fix the auto-login conflict with mkForce
             services.displayManager.autoLogin = lib.mkForce {
