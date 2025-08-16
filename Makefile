@@ -107,7 +107,7 @@ destroy-cloud:
 	cd terraform && terraform destroy -auto-approve
 
 clean:
-	rm -rf result .direnv terraform/.terraform terraform/terraform.tfstate*
+	rm -rf result .direnv terraform/.terraform terraform/terraform.tfstate* workshop-vm.*
 	@echo "🧹 Cleaned up build artifacts"
 
 opencode:

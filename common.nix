@@ -133,11 +133,12 @@ isoConfig // {
   virtualisation.docker.enable = true;
 
   services.getty.autologinUser = "workshop";
+  users.users.root.password = "root";
   users.users.workshop = {
     isNormalUser = true;
     shell = pkgs.bash;
     extraGroups = [ "networkmanager" "wheel" "docker" ];
-    password = "";
+    password = "workshop";
   };
 
   security.sudo.wheelNeedsPassword = false;
@@ -148,7 +149,6 @@ isoConfig // {
     git
     networkmanager
     firefox
-    xterm
     docker
     docker-compose
     bash
@@ -200,28 +200,52 @@ isoConfig // {
 
       # Install abra for workshop user
       if [ ! -f /home/workshop/.local/bin/abra ]; then
+        echo "🚀 Installing abra for user workshop..."
         sudo -u workshop mkdir -p /home/workshop/.local/bin
         cd /home/workshop
-        sudo -u workshop ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | sudo -u workshop ${pkgs.bash}/bin/bash
+        # Run installer and log output
+        install_log="/tmp/abra-install.log"
+        sudo -u workshop ${pkgs.curl}/bin/curl -fsSL https://install.abra.coopcloud.tech | sudo -u workshop ${pkgs.bash}/bin/bash &> "$install_log"
+        if [ -f /home/workshop/.local/bin/abra ]; then
+          echo "✅ abra installed successfully."
+        else
+          echo "❌ abra installation failed. See logs: cat $install_log"
+        fi
+      else
+        echo "✅ abra already installed."
       fi
 
       # Initialize Docker Swarm
+      echo "🔄 Checking Docker Swarm status..."
       if ! ${pkgs.docker}/bin/docker info | grep -q "Swarm: active"; then
+        echo "🔥 Initializing Docker Swarm..."
         ${pkgs.docker}/bin/docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
+        if ${pkgs.docker}/bin/docker info | grep -q "Swarm: active"; then
+          echo "✅ Docker Swarm initialized."
+        else
+          echo "❌ Docker Swarm initialization failed."
+        fi
+      else
+        echo "✅ Docker Swarm already active."
       fi
 
       # Ensure workshop user is in docker group
+      echo "🔄 Ensuring workshop user is in docker group..."
       usermod -aG docker workshop
+      if id -nG workshop | grep -q "docker"; then
+        echo "✅ workshop user is in docker group."
+      else
+        echo "❌ Failed to add workshop user to docker group."
+      fi
 
       # Create proper abra server configuration
       if [ ! -f /home/workshop/.abra/servers/workshop.local.env ]; then
         sudo -u workshop mkdir -p /home/workshop/.abra/servers/
+      fi
 
-        # Set up autocomplete
-        if command -v abra &> /dev/null; then
-          sudo -u workshop abra autocomplete bash > /home/workshop/.abra/autocomplete.bash
-          echo "source ~/.abra/autocomplete.bash" >> /home/workshop/.bashrc
-        fi
+      # Set up autocomplete
+      if command -v abra &> /dev/null; then
+        sudo -u workshop source <(abra autocomplete bash)
       fi
 
       # Test final DNS resolution
@@ -451,6 +475,21 @@ isoConfig // {
         fi
       }
 
+      abra-status() {
+        echo "🔍 Checking workshop-abra-setup service status..."
+        systemctl status workshop-abra-setup
+        echo ""
+        if [ -f /tmp/abra-install.log ]; then
+          echo "📚 Last abra installation log (/tmp/abra-install.log):"
+          cat /tmp/abra-install.log
+        else
+          echo "ℹ️ No abra installation log found at /tmp/abra-install.log"
+        fi
+        echo ""
+        echo "💡 To check if abra is in your PATH: which abra"
+        echo "💡 To check abra version: abra --version"
+      }
+
       help() {
         echo "🚀 CODE CRISPIES Workshop Commands:"
         echo ""
@@ -460,6 +499,7 @@ isoConfig // {
         echo "  deploy <recipe>    - Deploy app locally (e.g., deploy wordpress)"
         echo "  browser [recipe]   - Launch Firefox [to specific app]"
         echo "  desktop            - Start GUI desktop session"
+        echo "  abra-status        - Check the status of the abra setup service"
         echo ""
         echo "☁️ Cloud Access:"
         echo "  connect <name>     - SSH to cloud server (e.g., connect hopper)"

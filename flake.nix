@@ -90,8 +90,10 @@
               "-monitor"
               "stdio"
               # Add port forwarding for SSH
-              "-netdev" "user,id=net0,hostfwd=tcp::2222-:22"
-              "-device" "virtio-net,netdev=net0"
+              "-netdev"
+              "user,id=net0,hostfwd=tcp::2222-:22"
+              "-device"
+              "virtio-net,netdev=net0"
             ];
             # Fix the auto-login conflict with mkForce
             services.displayManager.autoLogin = lib.mkForce {
@@ -100,7 +102,7 @@
             };
             # Keep GUI session commands for when GUI is used
             services.xserver.displayManager.sessionCommands = ''
-              ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --fullscreen --title="Workshop Terminal" &
+              ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --fullscreen --maximize --hide-toolbar --hide-borders --hide-menubar --hide-toolbar --title="Workshop Terminal" &
             '';
           })
         ];
