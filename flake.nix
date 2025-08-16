@@ -49,9 +49,9 @@
         numParticipants;
 
       # Common configuration for both live-iso and local-vm
-      commonConfig = import ./common.nix {
-        inherit pkgs allParticipantNames participantNames;
-      };
+      commonConfig =
+        { isLiveIso ? false, ... } @ args:
+        import ./common.nix (args // { inherit pkgs allParticipantNames participantNames; });
     in
     {
       packages.${system} = {
@@ -63,6 +63,7 @@
 
           modules = [
             commonConfig
+            { isLiveIso = true; }
           ];
         };
       };
@@ -79,6 +80,7 @@
         inherit system;
         modules = [
           commonConfig
+          { isLiveIso = false; }
           ({ config, pkgs, ... }: {
             boot.loader.grub.enable = false;
             boot.loader.generic-extlinux-compatible.enable = true;
@@ -108,3 +110,4 @@
       };
     };
 }
+
