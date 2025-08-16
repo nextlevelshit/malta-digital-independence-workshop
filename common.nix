@@ -1,15 +1,23 @@
-{ pkgs, allParticipantNames, ... }: {
+{ pkgs, lib ? pkgs.lib, cloudServerNames, isLiveIso ? false, ... }: 
+
+let
+  # Only include isoImage config when building ISO
+  isoConfig = lib.optionalAttrs isLiveIso {
+    isoImage = {
+      makeEfiBootable = true;
+      makeUsbBootable = true;
+    };
+  };
+in
+
+isoConfig // {
   system.stateVersion = "25.05";
 
-  # Conditional ISO image settings
-  ${pkgs.lib.mkIf isLiveIso {
-    isoImage.makeEfiBootable = true;
-    isoImage.makeUsbBootable = true;
-  }}
-
-    networking.wireless.enable = true;
-  networking.networkmanager.enable = true;
-  networking.hostName = "workshop-live";
+  networking = {
+    wireless.enable = true;
+    networkmanager.enable = true;
+    hostName = if isLiveIso then "workshop-live" else "workshop-vm";
+  };
 
   # Enable Docker for local development
   virtualisation.docker.enable = true;
@@ -33,7 +41,6 @@
     xterm
     docker
     docker-compose
-    # For local abra installation
     bash
     wget
     jq
@@ -57,7 +64,7 @@
         sleep 3
       done
       
-      # Install abra for workshop user (DO NOT change installation method)
+      # Install abra for workshop user
       if [ ! -f /home/workshop/.local/bin/abra ]; then
         sudo -u workshop mkdir -p /home/workshop/.local/bin
         cd /home/workshop
@@ -101,6 +108,21 @@
 
             # Ensure abra is in PATH
             export PATH="$HOME/.local/bin:$PATH"
+
+            setup-traefik() {
+              echo "🔧 Setting up local Traefik proxy..."
+              
+              if ! command -v abra &> /dev/null; then
+                echo "❌ Abra not found. Run 'sudo systemctl restart workshop-abra-setup'"
+                return 1
+              fi
+
+              abra app new traefik -S --domain=traefik.workshop.local
+              abra app deploy traefik.workshop.local
+              
+              echo "✅ Traefik deployed! Dashboard: http://traefik.workshop.local"
+              echo "🚀 Now you can deploy apps with 'deploy <recipe>'"
+            }
       
             deploy() {
               if [ -z "$1" ]; then
@@ -116,13 +138,11 @@
               echo "🚀 Deploying $recipe locally..."
               echo "Domain: $domain"
         
-              # Check if abra is available
               if ! command -v abra &> /dev/null; then
                 echo "❌ Abra not found. Run 'sudo systemctl restart workshop-abra-setup'"
                 return 1
               fi
         
-              # Deploy with abra
               abra app new "$recipe" -S --domain="$domain"
               abra app deploy "$domain"
         
@@ -214,10 +234,8 @@
   services.xserver = {
     enable = true;
     desktopManager.xfce.enable = true;
-    displayManager = {
-      lightdm.enable = true;
-      autoLogin.enable = false; # Manual desktop start
-    };
+    displayManager.lightdm.enable = true;
+    # Don't set autoLogin here - it conflicts with the VM config
   };
 
   # Don't auto-start GUI, let user choose

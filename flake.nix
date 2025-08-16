@@ -14,10 +14,10 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
-      # All possible participant names for the workshop
-      allParticipantNames = [
+      # Server names for cloud connections
+      cloudServerNames = [
         "hopper"
-        "curie"
+        "curie" 
         "lovelace"
         "noether"
         "hamilton"
@@ -33,25 +33,11 @@
         "rich"
       ];
 
-      # Dynamic participant count (default 3, max 15)
-      participantsEnv = builtins.getEnv "PARTICIPANTS";
-      numParticipants =
-        if participantsEnv != "" && builtins.match "^[0-9]+$" participantsEnv != null
-        then
-          let num = builtins.fromJSON participantsEnv;
-          in if num >= 1 && num <= 15 then num else 3
-        else 3;
-
-      # Selected participant names based on count
-      # Selected participant names based on count
-      participantNames = builtins.genList
-        (i: builtins.elemAt allParticipantNames i)
-        numParticipants;
-
-      # Common configuration for both live-iso and local-vm
-      commonConfig =
-        { isLiveIso ? false, ... } @ args:
-        import ./common.nix (args // { inherit pkgs allParticipantNames participantNames; });
+      # Common configuration
+      commonConfig = { isLiveIso ? false }: 
+        import ./common.nix { 
+          inherit pkgs cloudServerNames isLiveIso;
+        };
     in
     {
       packages.${system} = {
@@ -60,10 +46,8 @@
         live-iso = nixos-generators.nixosGenerate {
           inherit system;
           format = "iso";
-
           modules = [
-            commonConfig
-            { isLiveIso = true; }
+            (commonConfig { isLiveIso = true; })
           ];
         };
       };
@@ -79,9 +63,11 @@
       nixosConfigurations.workshop-vm = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
-          commonConfig
-          { isLiveIso = false; }
-          ({ config, pkgs, ... }: {
+          "${nixpkgs}/nixos/modules/virtualisation/qemu-vm.nix"
+          
+          (commonConfig { isLiveIso = false; })
+          
+          ({ config, pkgs, lib, ... }: {
             boot.loader.grub.enable = false;
             boot.loader.generic-extlinux-compatible.enable = true;
 
@@ -90,9 +76,8 @@
             networking.networkmanager.enable = true;
             networking.firewall.enable = false;
 
-            # Auto-login for VM
-            services.getty.autologinUser = "workshop";
-            services.displayManager.autoLogin = {
+            # Fix the auto-login conflict with mkForce
+            services.displayManager.autoLogin = lib.mkForce {
               enable = true;
               user = "workshop";
             };
@@ -110,4 +95,3 @@
       };
     };
 }
-
