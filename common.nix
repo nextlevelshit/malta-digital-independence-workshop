@@ -237,7 +237,7 @@ isoConfig // {
       fi
       # Set up autocomplete
       if command -v abra &> /dev/null; then
-        /usr/bin/su - workshop -c "source <(/home/workshop/.local/bin/abra autocomplete bash)"
+        /run/current-system/sw/bin/su - workshop -c "source <(/home/workshop/.local/bin/abra autocomplete bash)"
       fi
       # Test final DNS resolution
       if /run/current-system/sw/bin/nslookup test.workshop.local 127.0.0.1; then
