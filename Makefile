@@ -72,11 +72,11 @@ vm: vm-run
 
 vm-run:
 	@echo "🖥️ Starting workshop VM as root..."
-	nix run .#local-vm -- --extra-experimental-features 'nix-command flakes' --command root
+	nix run .#local-vm --impure
 
 vm: vm-build
 	@echo "🧪 Testing VM build as root..."
-	nix build --extra-experimental-features 'nix-command flakes' .#local-vm
+	nix build .#local-vm --impure
 	@echo "✅ VM builds successfully"
 
 deploy-cloud:
