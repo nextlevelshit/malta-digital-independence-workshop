@@ -98,7 +98,7 @@
             # Fix the auto-login conflict with mkForce
             services.displayManager.autoLogin = lib.mkForce {
               enable = true;
-              user = "workshop";
+              user = "root";
             };
             # Keep GUI session commands for when GUI is used
             services.xserver.displayManager.sessionCommands = ''

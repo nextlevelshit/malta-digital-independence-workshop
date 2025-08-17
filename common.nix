@@ -183,21 +183,22 @@ isoConfig // {
         sleep 2
       done
 
-      # Install abra for workshop user (as root, but install to user home)
-      if [ ! -f /home/workshop/.local/bin/abra ]; then
-        echo "🚀 Installing abra for user workshop..."
-        mkdir -p /home/workshop/.local/bin
-        # Download and install as root, but to user directory
-        HOME=/home/workshop curl -fsSL https://install.abra.coopcloud.tech | bash
-        # Fix ownership
-        chown -R workshop:workshop /home/workshop/.local
-        if [ -f /home/workshop/.local/bin/abra ]; then
-          echo "✅ abra installed successfully."
+      # Install abra for workshop user - as root, to /usr/local/bin
+      if [ ! -f /usr/local/bin/abra ]; then
+        echo "🚀 Installing abra for root user..."
+        
+        # Download and install abra directly to /usr/local/bin
+        curl -fsSL https://install.abra.coopcloud.tech | bash
+        
+        if [ -f /usr/local/bin/abra ] && [ -x /usr/local/bin/abra ]; then
+          echo "✅ abra installed successfully to /usr/local/bin/abra"
         else
           echo "❌ abra installation failed."
+          echo "🔍 Debug: Contents of /usr/local/bin:"
+          ls -la /usr/local/bin/abra 2>/dev/null || echo "File not found"
         fi
       else
-        echo "✅ abra already installed."
+        echo "✅ abra already installed at /usr/local/bin/abra"
       fi
 
       # Initialize Docker Swarm

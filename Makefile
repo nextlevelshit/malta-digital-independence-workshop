@@ -68,15 +68,15 @@ test-usb: build-usb
 		-device virtio-net,netdev=net0 \
 		-display gtk
 
-vm-run:
-	@echo "🖥️ Starting workshop VM..."
-	nix run .#local-vm
-
 vm: vm-run
 
-vm-build:
-	@echo "🧪 Testing VM build..."
-	nix build .#local-vm
+vm-run:
+	@echo "🖥️ Starting workshop VM as root..."
+	nix run .#local-vm -- --extra-experimental-features 'nix-command flakes' --command root
+
+vm: vm-build
+	@echo "🧪 Testing VM build as root..."
+	nix build --extra-experimental-features 'nix-command flakes' .#local-vm
 	@echo "✅ VM builds successfully"
 
 deploy-cloud:
