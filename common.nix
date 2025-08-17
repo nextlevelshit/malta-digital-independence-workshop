@@ -148,10 +148,11 @@ isoConfig // {
   ];
 
   # Workshop Setup Service - REFACTORED
-  systemd.services.workshop-abra-setup = {
+    systemd.services.workshop-abra-setup = {
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" "docker.service" "dnsmasq.service" ];
     wants = [ "network-online.target" ];
+    path = with pkgs; [ bash curl dnsutils docker gnugrep shadow coreutils ];
     script = ''
       # Wait for network and services
       echo "Waiting for services to start..."
@@ -162,6 +163,7 @@ isoConfig // {
         fi
         sleep 2
       done
+
       # Test DNS resolution
       for i in {1..20}; do
         if nslookup test.workshop.local 127.0.0.1 >/dev/null 2>&1; then
@@ -171,6 +173,7 @@ isoConfig // {
         echo "🔄 Waiting for DNS... (attempt $i)"
         sleep 2
       done
+
       # Test Docker
       for i in {1..10}; do
         if docker info >/dev/null 2>&1; then
@@ -179,11 +182,15 @@ isoConfig // {
         fi
         sleep 2
       done
-      # Install abra for workshop user
+
+      # Install abra for workshop user (as root, but install to user home)
       if [ ! -f /home/workshop/.local/bin/abra ]; then
         echo "🚀 Installing abra for user workshop..."
-        sudo -u workshop bash -c "mkdir -p /home/workshop/.local/bin"
-        sudo -u workshop bash -c "curl -fsSL https://install.abra.coopcloud.tech | bash"
+        mkdir -p /home/workshop/.local/bin
+        # Download and install as root, but to user directory
+        HOME=/home/workshop curl -fsSL https://install.abra.coopcloud.tech | bash
+        # Fix ownership
+        chown -R workshop:workshop /home/workshop/.local
         if [ -f /home/workshop/.local/bin/abra ]; then
           echo "✅ abra installed successfully."
         else
@@ -192,6 +199,7 @@ isoConfig // {
       else
         echo "✅ abra already installed."
       fi
+
       # Initialize Docker Swarm
       echo "🔄 Checking Docker Swarm status..."
       if ! docker info | grep -q "Swarm: active"; then
@@ -205,7 +213,8 @@ isoConfig // {
       else
         echo "✅ Docker Swarm already active."
       fi
-      # Ensure workshop user is in docker group
+
+      # Ensure workshop user is in docker group (we are root, can use usermod directly)
       echo "🔄 Ensuring workshop user is in docker group..."
       usermod -aG docker workshop
       if id -nG workshop | grep -q "docker"; then
@@ -213,15 +222,15 @@ isoConfig // {
       else
         echo "❌ Failed to add workshop user to docker group."
       fi
-      # Set up autocomplete
-      if command -v abra &> /dev/null; then
-        sudo -u workshop bash -c "source <(/home/workshop/.local/bin/abra autocomplete bash)"
-      fi
+
+      # Set up autocomplete (skip this for now since we can't run as user easily)
+      # The bash init script will handle abra autocomplete on login
+
       # Test final DNS resolution
       if nslookup test.workshop.local 127.0.0.1; then
         echo "🎉 All services ready!"
       else
-        echo "⚠️ DNS may need manual restart: sudo systemctl restart dnsmasq"
+        echo "⚠️ DNS may need manual restart: systemctl restart dnsmasq"
       fi
     '';
     serviceConfig = {
@@ -435,11 +444,13 @@ isoConfig // {
       }
     
       abra-status() {
-        echo "🔍 Workshop setup service status:"
-        systemctl status workshop-abra-setup --no-pager
-        echo ""
-        echo "💡 Commands: which abra | abra --version"
+        systemctl status workshop-abra-setup
       }
+
+      abra-logs() {
+        journalctl -u workshop-abra-setup -f
+      }
+
     
       help() {
         echo "🚀 CODE CRISPIES Workshop Commands:"
