@@ -152,7 +152,7 @@ isoConfig // {
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" "docker.service" "dnsmasq.service" ];
     wants = [ "network-online.target" ];
-    path = with pkgs; [ bash curl dnsutils docker gnugrep shadow coreutils ];
+    path = with pkgs; [ bash curl dnsutils docker gnugrep shadow coreutils wget ];
     script = ''
       # Wait for network and services
       echo "Waiting for services to start..."
