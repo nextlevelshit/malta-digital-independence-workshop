@@ -353,6 +353,10 @@ isoConfig // {
       Type = "oneshot";
       RemainAfterExit = true;
       User = "root";
+      Environment = [
+        "TERM=xterm-256color"
+        "HOME=/root"
+      ];
     };
   };
 
@@ -362,13 +366,17 @@ isoConfig // {
     wantedBy = [ "multi-user.target" ];
     after = [ "workshop-system-setup.service" ];
     wants = [ "workshop-system-setup.service" ];
-    path = with pkgs; [ bash wget curl coreutils gnutar ncurses gzip file gnugrep ];
+    path = with pkgs; [ bash wget curl coreutils gnutar ncurses gzip file gnugrep docker ];
     
     script = ''
+      # Set proper environment
+      export TERM=xterm-256color
+      export HOME=/root
+      
       # Check if abra is already installed
-      if command -v abra >/dev/null 2>&1; then
-        echo "✅ abra already installed at $(which abra)"
-        abra --version
+      if [ -x "/root/.local/bin/abra" ]; then
+        echo "✅ abra already installed"
+        /root/.local/bin/abra --version
         exit 0
       fi
 
@@ -377,24 +385,15 @@ isoConfig // {
       # Install to /usr/local/bin (default behavior)
       curl -fsSL https://install.abra.coopcloud.tech | bash
 
-			# Add abra to $PATH
-			echo PATH=$PATH:/root/.local/bin >> /root/.profile
-
-			# Evaluate bashrc
-			source /root/.profile
-
-			# Set autocomplete properly
-			source <(abra autocomplete bash)
-
+      # Add to bashrc only once
+      if ! grep -q "/root/.local/bin" /root/.bashrc 2>/dev/null; then
+        echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.bashrc
+        echo "✅ Added /root/.local/bin to PATH in /root/.bashrc"
+      fi
       
-      # Verify installation
-      if command -v abra >/dev/null 2>&1; then
-        echo "✅ abra installed successfully at $(which abra)"
-        abra --version
-      else
-        echo "❌ abra installation failed."
-        echo "Checking common locations..."
-        ls -la /root/.local/bin/abra 2>/dev/null || echo "Not in /root/.local/bin"
+      # Verify
+      if [ -x "/root/.local/bin/abra" ]; then
+        echo "✅ abra installed to /root/.local/bin/abra"
       fi
     '';
     
@@ -402,6 +401,10 @@ isoConfig // {
       Type = "oneshot";
       RemainAfterExit = true;
       User = "root";
+      Environment = [
+        "TERM=xterm-256color"
+        "HOME=/root"
+      ];
     };
   };
 
