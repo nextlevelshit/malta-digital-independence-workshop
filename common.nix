@@ -284,9 +284,10 @@ isoConfig // {
     nano
     dnsutils
     dig
+    gnutar
   ];
 
-  # REFACTORED: System Setup Service (Root Tasks)
+  # System Setup Service (Root Tasks)
   systemd.services.workshop-system-setup = {
     description = "System-level checks for network, DNS, and Docker";
     wantedBy = [ "multi-user.target" ];
@@ -355,39 +356,52 @@ isoConfig // {
     };
   };
 
-  # NEW: Abra Installation Service (Workshop User Task)
+  # Abra Installation Service (System-wide)
   systemd.services.workshop-abra-install = {
-    description = "Install abra CLI for the workshop user";
+    description = "Install abra CLI system-wide";
     wantedBy = [ "multi-user.target" ];
-    # This service runs after the main system setup is complete
     after = [ "workshop-system-setup.service" ];
     wants = [ "workshop-system-setup.service" ];
-    path = with pkgs; [ bash curl coreutils ]; # Reduced path for user-specific needs
-        # This script now runs as the 'workshop' user, no 'sudo' needed
+    path = with pkgs; [ bash wget curl coreutils gnutar ];
+    
     script = ''
       # Check if abra is already installed
-      if [ -f /home/workshop/.local/bin/abra ]; then
-        echo "✅ abra already installed."
+      if command -v abra >/dev/null 2>&1; then
+        echo "✅ abra already installed at $(which abra)"
+        abra --version
         exit 0
       fi
-      echo "🚀 Installing abra for workshop user..."
-            # Create the target directory if it doesn't exist
-      mkdir -p /home/workshop/.local/bin
-            # Download and install abra directly into the user's local bin
-      curl -fsSL https://install.abra.coopcloud.tech | bash -s -- --install-dir /home/workshop/.local/bin
-            # Verify installation
-      if [ -f /home/workshop/.local/bin/abra ] && [ -x /home/workshop/.local/bin/abra ]; then
-        echo "✅ abra installed successfully to /home/workshop/.local/bin/abra"
+
+      echo "🚀 Installing abra system-wide..."
+      
+      # Install to /usr/local/bin (default behavior)
+      curl -fsSL https://install.abra.coopcloud.tech | bash
+
+			# Add abra to $PATH
+			echo PATH=$PATH:/root/.local/bin >> /root/.profile
+
+			# Evaluate bashrc
+			source /root/.profile
+
+			# Set autocomplete properly
+			source <(abra autocomplete bash)
+
+      
+      # Verify installation
+      if command -v abra >/dev/null 2>&1; then
+        echo "✅ abra installed successfully at $(which abra)"
+        abra --version
       else
         echo "❌ abra installation failed."
+        echo "Checking common locations..."
+        ls -la /root/.local/bin/abra 2>/dev/null || echo "Not in /root/.local/bin"
       fi
     '';
-        # CRITICAL CHANGE: This service runs as the workshop user
+    
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      User = "workshop";
-      Group = "users"; # Or the primary group of the workshop user
+      User = "root";
     };
   };
 
@@ -411,9 +425,13 @@ isoConfig // {
           echo "⚠️ DNS not working! Run: sudo systemctl restart dnsmasq"
         fi
       fi
-    
-      # Ensure abra is in PATH
-      export PATH="$HOME/.local/bin:$PATH"
+
+      # Check abra installation
+      if command -v abra >/dev/null 2>&1; then
+        echo "✅ abra ready: $(which abra)"
+      else
+        echo "⚠️ abra not found! Check: systemctl status workshop-abra-install"
+      fi
     
       # Bash Completion Configuration
       _workshop_completion() {
@@ -464,7 +482,7 @@ isoConfig // {
       
         # Add server
         if ! abra server ls 2>/dev/null | grep -q "workshop.local"; then
-          echo "🏗️ Adding workshop.local server..."
+          echo "🗄️ Adding workshop.local server..."
           abra server add workshop.local 2>/dev/null || abra server add --local
         fi
       
@@ -594,15 +612,6 @@ isoConfig // {
         fi
       }
     
-      abra-status() {
-        systemctl status workshop-abra-install
-      }
-
-      abra-logs() {
-        journalctl -u workshop-abra-install -f
-      }
-
-    
       help() {
         echo "🚀 CODE CRISPIES Workshop Commands:"
         echo ""
@@ -618,9 +627,9 @@ isoConfig // {
         echo "  Available: ${serverList}"
         echo ""
         echo "🔍 Debug:"
-        echo "  abra-status        - Check setup service"
         echo "  docker service ls  - List running services"
         echo "  systemctl status dnsmasq - Check DNS"
+        echo "  systemctl status workshop-abra-install - Check abra installation"
         echo ""
         echo "📚 Learning Flow:"
         echo "  1. setup-traefik"
