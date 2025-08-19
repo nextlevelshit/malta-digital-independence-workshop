@@ -362,7 +362,7 @@ isoConfig // {
     wantedBy = [ "multi-user.target" ];
     after = [ "workshop-system-setup.service" ];
     wants = [ "workshop-system-setup.service" ];
-    path = with pkgs; [ bash wget curl coreutils gnutar ];
+    path = with pkgs; [ bash wget curl coreutils gnutar ncurses gzip file gnugrep ];
     
     script = ''
       # Check if abra is already installed
