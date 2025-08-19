@@ -274,7 +274,6 @@ isoConfig // {
     curl
     git
     networkmanager
-    firefox
     docker
     docker-compose
     bash
@@ -431,17 +430,19 @@ isoConfig // {
 
       # Ensure /root/.local/bin is in PATH (safety net)
       if [[ ":$PATH:" != *":/root/.local/bin:"* ]]; then
+        echo "✅ adding abra to PATH"
         export PATH="$PATH:/root/.local/bin"
       fi
 
       # Check abra installation  
-      if command -v abra >/dev/null 2>&1; then
-        echo "✅ abra ready: $(which abra)"
-        source <(abra autocomplete bash) 2>/dev/null || true
+      if sudo abra >/dev/null 2>&1; then
+        echo "✅ abra ready: $(sudo which abra)"
+        source <(sudo abra autocomplete bash) 2>/dev/null || true
+        echo "✅ abra autocomplete enabled"
       else
         echo "⚠️ abra not found! Check: systemctl status workshop-abra-install"
       fi
-    
+
       # Bash Completion Configuration
       _workshop_completion() {
         local cur prev
@@ -460,10 +461,10 @@ isoConfig // {
             ;;
         esac
       }
-      complete -F _workshop_completion deploy browser connect
-    
+      complete -F _workshop_completion deploy browser connect abra
+
       # Core Workshop Functions
-      setup-traefik() {
+      setup() {
         echo "🔧 Setting up local Traefik proxy..."
       
         # Test SSH capability (tutorial requirement)
@@ -490,21 +491,21 @@ isoConfig // {
         fi
       
         # Add server
-        if ! abra server ls 2>/dev/null | grep -q "workshop.local"; then
+        if ! sudo abra server ls 2>/dev/null | grep -q "workshop.local"; then
           echo "🗄️ Adding workshop.local server..."
-          abra server add workshop.local 2>/dev/null || abra server add --local
+          sudo abra server add workshop.local 2>/dev/null || sudo abra server add --local
         fi
       
         # Create, configure, and deploy Traefik
         if ! abra app ls 2>/dev/null | grep -q "traefik"; then
           echo "🚀 Creating Traefik app..."
-          abra app new traefik --domain=traefik.workshop.local
+          sudo abra app new traefik --domain=traefik.workshop.local
         
           echo "⚙️ Configuring Traefik..."  
-          abra app config traefik.workshop.local
+          sudo abra app config traefik.workshop.local
         
           echo "📦 Deploying Traefik..."
-          abra app deploy traefik.workshop.local
+          sudo abra app deploy traefik.workshop.local
         
           echo "⏳ Waiting for Traefik..."
           for i in {1..30}; do
@@ -515,7 +516,7 @@ isoConfig // {
             sleep 2
           done
         
-          echo "⚠️ Traefik may still be starting. Check: abra app logs traefik.workshop.local"
+          echo "⚠️ Traefik may still be starting. Check: sudo abra app logs traefik.workshop.local"
         else
           echo "✅ Traefik already exists"
         fi
@@ -537,16 +538,16 @@ isoConfig // {
         # Ensure Traefik is running
         if ! curl -s --max-time 3 http://traefik.workshop.local/ping >/dev/null 2>&1; then
           echo "⚠️ Traefik not responding. Setting up..."
-          setup-traefik || return 1
+          setup || return 1
         fi
       
         # Create and deploy app
         echo "📦 Creating app: $recipe"
-        abra app new "$recipe" --domain="$domain" --server=default 2>/dev/null || \
-        abra app new "$recipe" --domain="$domain"
+        sudo abra app new "$recipe" --domain="$domain" --server=default 2>/dev/null || \
+        sudo abra app new "$recipe" --domain="$domain"
       
         echo "🚀 Deploying: $domain"
-        abra app deploy "$domain"
+        sudo abra app deploy "$domain"
       
         echo "⏳ Waiting for deployment..."
         for i in {1..60}; do
@@ -558,7 +559,7 @@ isoConfig // {
         done
       
         echo "⚠️ Deployment may still be starting..."
-        echo "🔍 Debug: abra app ps $domain"
+        echo "🔍 Debug: sudo abra app ps $domain"
       }
     
       connect() {
@@ -625,11 +626,12 @@ isoConfig // {
         echo "🚀 CODE CRISPIES Workshop Commands:"
         echo ""
         echo "🏠 Local Development:"
-        echo "  setup-traefik      - Setup local proxy (REQUIRED FIRST!)"
+        echo "  setup              - Setup local proxy (REQUIRED FIRST!)"
         echo "  recipes            - Show all available apps"
         echo "  deploy <recipe>    - Deploy app locally"
         echo "  browser [recipe]   - Launch Firefox [to app]"
         echo "  desktop            - Start GUI session"
+        echo "  sudo abra          - Run abra CLI directly as root"
         echo ""
         echo "☁️ Cloud Access:"
         echo "  connect <name>     - SSH to cloud server"
@@ -641,12 +643,20 @@ isoConfig // {
         echo "  systemctl status workshop-abra-install - Check abra installation"
         echo ""
         echo "📚 Learning Flow:"
-        echo "  1. setup-traefik"
+        echo "  1. setup"
         echo "  2. deploy wordpress"  
         echo "  3. browser wordpress"
         echo "  4. connect hopper"
       }
     '';
+
+  programs.firefox = {
+    enable = true;
+    preferences = {
+      "browser.fixup.fallback-to-https" = false;
+      "browser.urlbar.autoFill" = false;
+    };
+  };
 
   # GUI Configuration
   services.xserver = {
