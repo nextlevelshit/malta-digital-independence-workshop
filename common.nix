@@ -286,12 +286,13 @@ isoConfig // {
     dig
   ];
 
-  # Workshop Setup Service - REFACTORED
-  systemd.services.workshop-abra-setup = {
+  # REFACTORED: System Setup Service (Root Tasks)
+  systemd.services.workshop-system-setup = {
+    description = "System-level checks for network, DNS, and Docker";
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" "docker.service" "dnsmasq.service" ];
     wants = [ "network-online.target" ];
-    path = with pkgs; [ bash curl dnsutils docker gnugrep shadow coreutils wget ];
+    path = with pkgs; [ bash curl dnsutils docker gnugrep shadow coreutils ];
     script = ''
       # Wait for network and services
       echo "Waiting for services to start..."
@@ -302,7 +303,6 @@ isoConfig // {
         fi
         sleep 2
       done
-
       # Test DNS resolution
       for i in {1..20}; do
         if nslookup test.workshop.local 127.0.0.1 >/dev/null 2>&1; then
@@ -312,7 +312,6 @@ isoConfig // {
         echo "🔄 Waiting for DNS... (attempt $i)"
         sleep 2
       done
-
       # Test Docker
       for i in {1..10}; do
         if docker info >/dev/null 2>&1; then
@@ -321,25 +320,6 @@ isoConfig // {
         fi
         sleep 2
       done
-
-      # Install abra for workshop user - as root, to /usr/local/bin
-      if [ ! -f /usr/local/bin/abra ]; then
-        echo "🚀 Installing abra for root user..."
-        
-        # Download and install abra directly to /usr/local/bin
-        curl -fsSL https://install.abra.coopcloud.tech | bash
-        
-        if [ -f /usr/local/bin/abra ] && [ -x /usr/local/bin/abra ]; then
-          echo "✅ abra installed successfully to /usr/local/bin/abra"
-        else
-          echo "❌ abra installation failed."
-          echo "🔍 Debug: Contents of /usr/local/bin:"
-          ls -la /usr/local/bin/abra 2>/dev/null || echo "File not found"
-        fi
-      else
-        echo "✅ abra already installed at /usr/local/bin/abra"
-      fi
-
       # Initialize Docker Swarm
       echo "🔄 Checking Docker Swarm status..."
       if ! docker info | grep -q "Swarm: active"; then
@@ -353,8 +333,7 @@ isoConfig // {
       else
         echo "✅ Docker Swarm already active."
       fi
-
-      # Ensure workshop user is in docker group (we are root, can use usermod directly)
+      # Ensure workshop user is in docker group
       echo "🔄 Ensuring workshop user is in docker group..."
       usermod -aG docker workshop
       if id -nG workshop | grep -q "docker"; then
@@ -362,13 +341,9 @@ isoConfig // {
       else
         echo "❌ Failed to add workshop user to docker group."
       fi
-
-      # Set up autocomplete (skip this for now since we can't run as user easily)
-      # The bash init script will handle abra autocomplete on login
-
-      # Test final DNS resolution
+      # Final DNS resolution test
       if nslookup test.workshop.local 127.0.0.1; then
-        echo "🎉 All services ready!"
+        echo "🎉 System services ready!"
       else
         echo "⚠️ DNS may need manual restart: systemctl restart dnsmasq"
       fi
@@ -377,6 +352,42 @@ isoConfig // {
       Type = "oneshot";
       RemainAfterExit = true;
       User = "root";
+    };
+  };
+
+  # NEW: Abra Installation Service (Workshop User Task)
+  systemd.services.workshop-abra-install = {
+    description = "Install abra CLI for the workshop user";
+    wantedBy = [ "multi-user.target" ];
+    # This service runs after the main system setup is complete
+    after = [ "workshop-system-setup.service" ];
+    wants = [ "workshop-system-setup.service" ];
+    path = with pkgs; [ bash curl coreutils ]; # Reduced path for user-specific needs
+        # This script now runs as the 'workshop' user, no 'sudo' needed
+    script = ''
+      # Check if abra is already installed
+      if [ -f /home/workshop/.local/bin/abra ]; then
+        echo "✅ abra already installed."
+        exit 0
+      fi
+      echo "🚀 Installing abra for workshop user..."
+            # Create the target directory if it doesn't exist
+      mkdir -p /home/workshop/.local/bin
+            # Download and install abra directly into the user's local bin
+      curl -fsSL https://install.abra.coopcloud.tech | bash -s -- --install-dir /home/workshop/.local/bin
+            # Verify installation
+      if [ -f /home/workshop/.local/bin/abra ] && [ -x /home/workshop/.local/bin/abra ]; then
+        echo "✅ abra installed successfully to /home/workshop/.local/bin/abra"
+      else
+        echo "❌ abra installation failed."
+      fi
+    '';
+        # CRITICAL CHANGE: This service runs as the workshop user
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      User = "workshop";
+      Group = "users"; # Or the primary group of the workshop user
     };
   };
 
@@ -584,11 +595,11 @@ isoConfig // {
       }
     
       abra-status() {
-        systemctl status workshop-abra-setup
+        systemctl status workshop-abra-install
       }
 
       abra-logs() {
-        journalctl -u workshop-abra-setup -f
+        journalctl -u workshop-abra-install -f
       }
 
     
