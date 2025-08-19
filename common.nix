@@ -429,9 +429,15 @@ isoConfig // {
         fi
       fi
 
-      # Check abra installation
+      # Ensure /root/.local/bin is in PATH (safety net)
+      if [[ ":$PATH:" != *":/root/.local/bin:"* ]]; then
+        export PATH="$PATH:/root/.local/bin"
+      fi
+
+      # Check abra installation  
       if command -v abra >/dev/null 2>&1; then
         echo "✅ abra ready: $(which abra)"
+        source <(abra autocomplete bash) 2>/dev/null || true
       else
         echo "⚠️ abra not found! Check: systemctl status workshop-abra-install"
       fi
