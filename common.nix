@@ -231,7 +231,7 @@ isoConfig
   networking = {
     networkmanager = {
       enable = true;
-      wifi.enable = true;
+      #wifi.enable = true;
       dns = "none"; # We use dnsmasq
       ensureProfiles = {
         environmentFiles = [ "/etc/NetworkManager/workshop-wifi.env" ];
@@ -374,8 +374,9 @@ isoConfig
     dig
     gnutar
     openssl # Add this for certificate generation
-    chromium # Add Chromium browser
     # Additional font packages for QEMU
+    chromium # Add Chromium browser
+    firefox
     dejavu_fonts
     liberation_ttf
     fontconfig
@@ -514,18 +515,43 @@ isoConfig
       fi
     '';
 
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      User = "root";
-      Environment = [
-        "TERM=xterm-256color"
-        "HOME=/root"
-      ];
-    };
-  };
+     serviceConfig = {
+       Type = "oneshot";
+       RemainAfterExit = true;
+       User = "root";
+       Environment = [
+         "TERM=xterm-256color"
+         "HOME=/root"
+       ];
+     };
+   };
 
-  # Enhanced Bash Configuration with All Features
+   # Set Firefox as default browser
+   systemd.services.workshop-set-default-browser = {
+     description = "Set Firefox as the default browser for workshop user";
+     wantedBy = [ "multi-user.target" ];
+     after = [ "network.target" ];
+     path = with pkgs; [
+       xdg-utils
+       coreutils
+       su
+     ];
+     script = ''
+       # Set Firefox as default browser for workshop user
+       su - workshop -c "xdg-settings set default-web-browser firefox.desktop"
+       # Also set MIME types for HTML files
+       su - workshop -c "xdg-mime default firefox.desktop text/html"
+       su - workshop -c "xdg-mime default firefox.desktop x-scheme-handler/http"
+       su - workshop -c "xdg-mime default firefox.desktop x-scheme-handler/https"
+     '';
+     serviceConfig = {
+       Type = "oneshot";
+       RemainAfterExit = true;
+       User = "root";
+     };
+   };
+
+   # Enhanced Bash Configuration with All Features
   programs.bash.interactiveShellInit =
     let
       recipeList = builtins.concatStringsSep " " allRecipes;
@@ -1207,13 +1233,57 @@ isoConfig
             }
     '';
 
-  programs.firefox = {
-    enable = true;
-    preferences = {
-      "browser.fixup.fallback-to-https" = false;
-      "browser.urlbar.autoFill" = false;
-    };
-  };
+   programs.firefox = {
+     enable = true;
+     preferences = {
+       "browser.fixup.fallback-to-https" = false;
+       "browser.urlbar.autoFill" = false;
+       # Disable telemetry and data collection
+       "datareporting.healthreport.uploadEnabled" = false;
+       "datareporting.policy.dataSubmissionEnabled" = false;
+       "toolkit.telemetry.enabled" = false;
+       "toolkit.telemetry.unified" = false;
+       "toolkit.telemetry.archive.enabled" = false;
+       "toolkit.telemetry.newProfilePing.enabled" = false;
+       "toolkit.telemetry.shutdownPingSender.enabled" = false;
+       "toolkit.telemetry.updatePing.enabled" = false;
+       "toolkit.telemetry.bhrPing.enabled" = false;
+       "toolkit.telemetry.firstShutdownPing.enabled" = false;
+       "toolkit.telemetry.coverage.opt-out" = true;
+       "toolkit.coverage.opt-out" = true;
+       "toolkit.coverage.endpoint.base" = "";
+       # Disable Mozilla experiments
+       "experiments.supported" = false;
+       "experiments.enabled" = false;
+       "experiments.manifest.uri" = "";
+       # Disable crash reporting
+       "breakpad.reportURL" = "";
+       "browser.tabs.crashReporting.sendReport" = false;
+       "browser.crashReports.unsubmittedCheck.autoSubmit2" = false;
+       # Disable default browser check
+       "browser.shell.checkDefaultBrowser" = false;
+       # Disable welcome tour and onboarding
+       "browser.aboutwelcome.enabled" = false;
+       "browser.onboarding.enabled" = false;
+       "browser.onboarding.tour-type" = "new";
+       "browser.onboarding.seen-tourset-version" = "999";
+       "browser.onboarding.hidden" = true;
+       # Disable pocket
+       "extensions.pocket.enabled" = false;
+       # Disable Firefox accounts
+       "identity.fxaccounts.enabled" = false;
+       # Disable sponsored content
+       "browser.newtabpage.activity-stream.showSponsored" = false;
+       "browser.newtabpage.activity-stream.showSponsoredTopSites" = false;
+       # Disable search suggestions
+       "browser.search.suggest.enabled" = false;
+       "browser.urlbar.suggest.searches" = false;
+       # Disable geolocation
+       "geo.enabled" = false;
+       # Disable webRTC
+       "media.peerconnection.enabled" = false;
+     };
+   };
 
   # Font packages for GUI rendering (QEMU GTK display)
   fonts.packages = with pkgs; [
