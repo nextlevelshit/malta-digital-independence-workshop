@@ -1354,6 +1354,13 @@ isoConfig
     displayManager.gdm.enable = true;
   };
 
+  # Essential GNOME services for network integration
+  services.gnome = {
+    glib-networking.enable = true;  # Critical for NetworkManager integration
+    gnome-settings-daemon.enable = true;  # Handles GNOME settings
+    gnome-keyring.enable = true;  # Optional but good practice
+  };
+
   # Exclude unnecessary GNOME packages
   environment.gnome.excludePackages = with pkgs; [
     gnome-photos
