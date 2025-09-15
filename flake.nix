@@ -10,10 +10,10 @@
   };
 
   outputs =
-    { self
-    , nixpkgs
-    , nixos-generators
-    ,
+    {
+      self,
+      nixpkgs,
+      nixos-generators,
     }:
     let
       system = "x86_64-linux";
@@ -40,8 +40,8 @@
 
       # Common configuration
       commonConfig =
-        { isLiveIso ? false
-        ,
+        {
+          isLiveIso ? false,
         }:
         import ./common.nix {
           inherit pkgs cloudServerNames isLiveIso;
@@ -76,10 +76,11 @@
           (commonConfig { isLiveIso = false; })
 
           (
-            { config
-            , pkgs
-            , lib
-            , ...
+            {
+              config,
+              pkgs,
+              lib,
+              ...
             }:
             {
               boot.loader.grub.enable = false;

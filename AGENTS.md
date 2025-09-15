@@ -6,7 +6,6 @@ This file provides guidelines for AI coding agents operating within this reposit
 
 - **Build**: `make build-usb` (Builds the NixOS workshop ISO)
 - **Local VM**: `make vm` (Starts local VM that simulates USB environment)
-- **Lint**: `make lint` (Runs markdownlint, JSON validation, and nixpkgs-fmt)
 - **Test**: `make status-cloud` (Health checks for cloud infrastructure)
 - **Deploy**: `make deploy-cloud` (Deploys 15 VMs to Hetzner Cloud)
 
