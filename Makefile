@@ -5,6 +5,7 @@ export
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
+ISO_FILE := $(shell ls result/iso/*.iso 2>/dev/null | head -1)
 
 help:
 	@echo "CODE CRISPIES Workshop Infrastructure"
@@ -43,8 +44,8 @@ build-usb:
 		exit 1; \
 	fi
 	nix build .#live-iso --show-trace
-	@echo "✅ ISO built: result/iso/nixos.iso"
-	@echo "📦 Size: $$(du -h result/iso/nixos.iso | cut -f1)"
+	@echo "✅ ISO built: $(ISO_FILE)"
+	@echo "📦 Size: $$(du -h $(ISO_FILE) | cut -f1)"
 
 flash-usb: build-usb
 	@if [ "$(USB_DEVICE)" = "/dev/sdX" ]; then \
@@ -54,14 +55,14 @@ flash-usb: build-usb
 	@echo "⚠️ About to flash $(USB_DEVICE) - THIS WILL ERASE ALL DATA!"
 	@echo "Device info: $$(lsblk $(USB_DEVICE) 2>/dev/null || echo 'DEVICE NOT FOUND')"
 	@read -p "Continue? [y/N]: " confirm && [ "$$confirm" = "y" ]
-	sudo dd if=result/iso/nixos.iso of=$(USB_DEVICE) bs=4M status=progress oflag=sync
+	sudo dd if=$(ISO_FILE) of=$(USB_DEVICE) bs=4M status=progress oflag=sync
 	sync
 	@echo "✅ USB drive ready!"
 
-test-usb: build-usb
+test-usb: 
 	@echo "🧪 Testing USB environment in QEMU..."
 	qemu-system-x86_64 \
-		-cdrom result/iso/nixos.iso \
+		-cdrom $(ISO_FILE) \
 		-m 2048 \
 		-enable-kvm \
 		-netdev user,id=net0 \
