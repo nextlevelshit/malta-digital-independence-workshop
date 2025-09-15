@@ -1207,14 +1207,12 @@ isoConfig
   };
 
   # Font packages for GUI rendering (QEMU GTK display)
-  fonts.fonts = with pkgs; [
+  fonts.packages = with pkgs; [
     dejavu_fonts
     liberation_ttf
     noto-fonts
-    # Additional fonts for QEMU compatibility
-    freefont_ttf
-    ubuntu_font_family
-    cantarell-fonts
+    cantarell-fonts  # GNOME default font
+    ubuntu-classic  # Additional font for compatibility
   ];
 
   # GUI Configuration
