@@ -369,7 +369,7 @@ isoConfig
     git
     networkmanager
     networkmanagerapplet # Network Manager GUI for GNOME
-    gnome.gnome-control-center # GNOME Settings (includes network panel)
+    gnome-control-center # GNOME Settings (includes network panel)
     iwd # iNet wireless daemon for better WiFi support
     docker
     docker-compose
