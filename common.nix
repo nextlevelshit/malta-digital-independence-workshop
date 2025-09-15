@@ -12,6 +12,8 @@ let
     isoImage = {
       makeEfiBootable = true;
       makeUsbBootable = true;
+      # Custom boot menu label for workshop
+      label = "CODECRISPIES_WORKSHOP";
     };
   };
 
@@ -234,7 +236,6 @@ isoConfig
   networking = {
     networkmanager = {
       enable = true;
-      #wifi.enable = true;
       dns = "none"; # We use dnsmasq
       ensureProfiles = {
         environmentFiles = [ "/etc/NetworkManager/workshop-wifi.env" ];
@@ -365,6 +366,7 @@ isoConfig
     curl
     git
     networkmanager
+    networkmanagerapplet # Network Manager GUI for GNOME
     docker
     docker-compose
     gnome-terminal
@@ -566,14 +568,24 @@ isoConfig
           echo "Mode: Local Development (Offline Co-op Cloud)"
           echo ""
         
-          # DNS Health Check
-          if command -v nslookup >/dev/null 2>&1; then
-            if nslookup test.workshop.local 127.0.0.1 >/dev/null 2>&1; then
-              echo "✅ DNS wildcard ready: *.workshop.local → 127.0.0.1"
-            else
-              echo "⚠️ DNS not working! Run: sudo systemctl restart dnsmasq"
-            fi
-          fi
+           # Network Health Check
+           echo "🌐 Network Status:"
+           if systemctl is-active --quiet NetworkManager; then
+             echo "✅ NetworkManager running"
+             nmcli -t -f STATE general | head -1
+           else
+             echo "❌ NetworkManager not running"
+             echo "   Start with: sudo systemctl start NetworkManager"
+           fi
+
+           # DNS Health Check
+           if command -v nslookup >/dev/null 2>&1; then
+             if nslookup test.workshop.local 127.0.0.1 >/dev/null 2>&1; then
+               echo "✅ DNS wildcard ready: *.workshop.local → 127.0.0.1"
+             else
+               echo "⚠️ DNS not working! Run: sudo systemctl restart dnsmasq"
+             fi
+           fi
 
           # Ensure /root/.local/bin is in PATH (safety net)
           if [[ ":$PATH:" != *":/root/.local/bin:"* ]]; then
@@ -1208,32 +1220,64 @@ isoConfig
             fi
           }
         
-          help() {
-            echo "🚀 CODE CRISPIES Workshop Commands:"
-            echo ""
-            echo "🏠 Local Development:"
-            echo "  setup              - Setup local proxy (REQUIRED FIRST!)"
-            echo "  recipes            - Show all available apps"
-            echo "  deploy <recipe>    - Deploy app locally"
-            echo "  browser [recipe] - Launch browser [to app]"
-            echo "  desktop            - Start GUI session"
-            echo "  sudo abra          - Run abra CLI directly as root"
-            echo ""
-            echo "☁️ Cloud Access:"
-            echo "  connect <name>     - SSH to cloud server"
-            echo "  Available: ${serverList}"
-            echo ""
-            echo "🔍 Debug:"
-            echo "  docker service ls  - List running services"
-            echo "  systemctl status dnsmasq - Check DNS"
-            echo "  systemctl status workshop-abra-install - Check abra installation"
-            echo ""
-            echo "📚 Learning Flow:"
-            echo "  1. setup"
-            echo "  2. deploy wordpress"  
-            echo "  3. browser wordpress"
-            echo "  4. connect hopper"
-          }
+           network_help() {
+             echo "🌐 Network Configuration Help:"
+             echo ""
+             echo "🔍 Check Network Status:"
+             echo "  nmcli device status          - Show network devices"
+             echo "  nmcli connection show        - Show available connections"
+             echo "  nmcli connection up <name>   - Connect to network"
+             echo "  systemctl status NetworkManager - Check service status"
+             echo ""
+             echo "📡 Manual WiFi Connection:"
+             echo "  nmcli device wifi list       - Scan for WiFi networks"
+             echo "  nmcli device wifi connect <SSID> password <PASSWORD>"
+             echo "  nmcli connection up <connection-name>"
+             echo ""
+             echo "🔧 GUI Network Manager:"
+             echo "  Click network icon in top bar → Settings"
+             echo "  Or run: nm-connection-editor"
+             echo ""
+             echo "🌍 Test Internet Connection:"
+             echo "  ping 8.8.8.8                - Test basic connectivity"
+             echo "  curl https://abra.coopcloud.tech - Test HTTPS"
+             echo ""
+             echo "📋 Offline Setup (No Internet):"
+             echo "  1. Configure network manually using above commands"
+             echo "  2. Run 'setup' to initialize local environment"
+             echo "  3. Deploy apps locally without external dependencies"
+             echo "  4. Use 'browser <app>' to access deployed services"
+           }
+
+           help() {
+             echo "🚀 CODE CRISPIES Workshop Commands:"
+             echo ""
+             echo "🏠 Local Development:"
+             echo "  setup              - Setup local proxy (REQUIRED FIRST!)"
+             echo "  recipes            - Show all available apps"
+             echo "  deploy <recipe>    - Deploy app locally"
+             echo "  browser [recipe] - Launch browser [to app]"
+             echo "  desktop            - Start GUI session"
+             echo "  sudo abra          - Run abra CLI directly as root"
+             echo ""
+             echo "🌐 Network:"
+             echo "  network_help       - Network configuration guide"
+             echo ""
+             echo "☁️ Cloud Access:"
+             echo "  connect <name>     - SSH to cloud server"
+             echo "  Available: ${serverList}"
+             echo ""
+             echo "🔍 Debug:"
+             echo "  docker service ls  - List running services"
+             echo "  systemctl status dnsmasq - Check DNS"
+             echo "  systemctl status workshop-abra-install - Check abra installation"
+             echo ""
+             echo "📚 Learning Flow:"
+             echo "  1. setup"
+             echo "  2. deploy wordpress"
+             echo "  3. browser wordpress"
+             echo "  4. connect hopper"
+           }
     '';
 
   programs.firefox = {
