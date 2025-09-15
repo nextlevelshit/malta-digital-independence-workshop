@@ -443,6 +443,25 @@ isoConfig // {
       ];
     };
   };
+  
+  # System Packages
+  environment.systemPackages = with pkgs; [
+    openssh
+    curl
+    git
+    networkmanager
+    docker
+    docker-compose
+    bash
+    wget
+    jq
+    tree
+    nano
+    dnsutils
+    dig
+    gnutar
+    openssl  # Add this for certificate generation
+  ];
 
   # Enhanced Bash Configuration with All Features
   programs.bash.interactiveShellInit =
@@ -453,7 +472,7 @@ isoConfig // {
     ''
       # Workshop Environment Welcome
       echo "🚀 CODE CRISPIES Workshop Environment"
-      echo "Mode: Local Development + Cloud Access"
+      echo "Mode: Local Development (Offline Co-op Cloud)"
       echo ""
     
       # DNS Health Check
@@ -502,14 +521,9 @@ isoConfig // {
 
       # Core Workshop Functions
       setup() {
-        echo "🔧 Setting up local Traefik proxy..."
+        echo "🔧 Setting up LOCAL Co-op Cloud environment..."
       
-        # Test SSH capability (tutorial requirement)
-        if ! timeout 3 ssh -o BatchMode=yes workshop@workshop.local echo "SSH OK" 2>/dev/null; then
-          echo "⚠️ SSH to workshop.local not working, continuing with local setup..."
-        fi
-      
-        # Verify DNS
+        # Verify DNS first
         if ! nslookup traefik.workshop.local 127.0.0.1 >/dev/null 2>&1; then
           echo "🔄 Restarting DNS..."
           sudo systemctl restart dnsmasq
@@ -527,36 +541,83 @@ isoConfig // {
           docker network create -d overlay proxy
         fi
       
-        # Add server
-        if ! sudo abra server ls 2>/dev/null | grep -q "workshop.local"; then
-          echo "🗄️ Adding workshop.local server..."
-          sudo abra server add workshop.local 2>/dev/null || sudo abra server add --local
+        # Add LOCAL server (critical difference!)
+        if ! sudo abra server ls 2>/dev/null | grep -q "default"; then
+          echo "🗄️ Adding LOCAL server..."
+          sudo abra server add --local
+          echo "✅ Local server registered"
         fi
       
-        # Create, configure, and deploy Traefik
-        if ! abra app ls 2>/dev/null | grep -q "traefik"; then
-          echo "🚀 Creating Traefik app..."
-          sudo abra app new traefik --domain=traefik.workshop.local
+        # Create self-signed certificate for offline use
+        echo "🔐 Setting up self-signed certificates for offline use..."
         
-          echo "⚙️ Configuring Traefik..."  
-          sudo abra app config traefik.workshop.local
+        # Create temporary cert directory
+        CERT_DIR="/tmp/workshop-certs"
+        mkdir -p $CERT_DIR
         
-          echo "📦 Deploying Traefik..."
+        # Generate self-signed certificate for *.workshop.local
+        if [[ ! -f "$CERT_DIR/workshop.crt" ]]; then
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "$CERT_DIR/workshop.key" \
+            -out "$CERT_DIR/workshop.crt" \
+            -subj "/CN=*.workshop.local" \
+            -config <(printf "[req]\ndistinguished_name=req\n[v3_req]\nsubjectAltName=DNS:*.workshop.local,DNS:workshop.local,DNS:localhost\n") \
+            -extensions v3_req 2>/dev/null || true
+          echo "🔑 Generated self-signed certificate"
+        fi
+      
+        # Create and configure Traefik for OFFLINE mode
+        if ! sudo abra app ls 2>/dev/null | grep -q "traefik"; then
+          echo "🚀 Creating Traefik app for OFFLINE use..."
+          sudo abra app new traefik --domain=traefik.workshop.local --server=default
+          
+          # Configure traefik for offline/local development
+          TRAEFIK_ENV="/root/.abra/servers/default/traefik.workshop.local.env"
+          
+          echo "⚙️ Configuring Traefik for offline mode..."
+          # Create offline-friendly traefik configuration
+          sudo tee -a "$TRAEFIK_ENV" >/dev/null <<EOF
+
+# OFFLINE/LOCAL DEVELOPMENT CONFIGURATION
+LETS_ENCRYPT_ENV=staging
+WILDCARDS_ENABLED=1
+SECRET_WILDCARD_CERT_VERSION=v1  
+SECRET_WILDCARD_KEY_VERSION=v1
+COMPOSE_FILE="\$COMPOSE_FILE:compose.wildcard.yml"
+
+# Disable Let's Encrypt for local development  
+TRAEFIK_ACME_CASERVER=
+TRAEFIK_ACME_EMAIL=
+EOF
+          
+          # Insert self-signed certificates as Docker secrets
+          if [[ -f "$CERT_DIR/workshop.crt" && -f "$CERT_DIR/workshop.key" ]]; then
+            echo "📋 Installing self-signed certificates..."
+            sudo abra app secret insert traefik.workshop.local ssl_cert v1 -f < "$CERT_DIR/workshop.crt"
+            sudo abra app secret insert traefik.workshop.local ssl_key v1 -f < "$CERT_DIR/workshop.key"
+          fi
+          
+          echo "🚀 Deploying Traefik..."
           sudo abra app deploy traefik.workshop.local
-        
+          
           echo "⏳ Waiting for Traefik..."
           for i in {1..30}; do
-            if curl -s http://traefik.workshop.local >/dev/null 2>&1; then
-              echo "✅ Traefik ready! Dashboard: http://traefik.workshop.local"
+            if curl -s -k https://traefik.workshop.local/ping >/dev/null 2>&1 || \
+               curl -s http://traefik.workshop.local/ping >/dev/null 2>&1; then
+              echo "✅ Traefik ready! Dashboard: https://traefik.workshop.local (accept self-signed cert)"
+              echo "💡 For HTTP: http://traefik.workshop.local"
               return 0
             fi
             sleep 2
           done
-        
+          
           echo "⚠️ Traefik may still be starting. Check: sudo abra app logs traefik.workshop.local"
         else
           echo "✅ Traefik already exists"
         fi
+        
+        # Cleanup temporary certs
+        rm -rf "$CERT_DIR" 2>/dev/null || true
       }
     
       deploy() {
@@ -573,23 +634,25 @@ isoConfig // {
         echo "Domain: $domain"
       
         # Ensure Traefik is running
-        if ! curl -s --max-time 3 http://traefik.workshop.local/ping >/dev/null 2>&1; then
+        if ! curl -s -k --max-time 3 https://traefik.workshop.local/ping >/dev/null 2>&1 && \
+           ! curl -s --max-time 3 http://traefik.workshop.local/ping >/dev/null 2>&1; then
           echo "⚠️ Traefik not responding. Setting up..."
           setup || return 1
         fi
       
         # Create and deploy app
         echo "📦 Creating app: $recipe"
-        sudo abra app new "$recipe" --domain="$domain" --server=default 2>/dev/null || \
-        sudo abra app new "$recipe" --domain="$domain"
+        sudo abra app new "$recipe" --domain="$domain" --server=default
       
         echo "🚀 Deploying: $domain"
         sudo abra app deploy "$domain"
       
         echo "⏳ Waiting for deployment..."
         for i in {1..60}; do
-          if curl -s --max-time 3 http://$domain >/dev/null 2>&1; then
-            echo "✅ Deployed! Access at: http://$domain"
+          if curl -s -k --max-time 3 https://$domain >/dev/null 2>&1 || \
+             curl -s --max-time 3 http://$domain >/dev/null 2>&1; then
+            echo "✅ Deployed! Access at: https://$domain (accept self-signed cert)"
+            echo "💡 Or HTTP: http://$domain"
             return 0
           fi
           sleep 3
