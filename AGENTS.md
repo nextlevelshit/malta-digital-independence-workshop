@@ -58,3 +58,7 @@ This file provides guidelines for AI coding agents operating within this reposit
 ## ⚠️ Critical Warnings
 
 - **NEVER RUN `nix-env`** - This can break your Nix environment. Use `nix-shell`, `nix develop`, or declarative approaches instead.
+
+## ⚠️ Critical Warnings
+
+- **NEVER RUN `nix-env`** - This can break your Nix environment. Use `nix-shell`, `nix develop`, or declarative approaches instead.

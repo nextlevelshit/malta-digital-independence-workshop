@@ -59,9 +59,9 @@ flash-usb: build-usb
 	sync
 	@echo "✅ USB drive ready!"
 
-test-usb: 
+test-usb:
 	@echo "🧪 Testing USB environment in QEMU..."
-	qemu-system-x86_64 \
+	nix develop --command qemu-system-x86_64 \
 		-cdrom $(ISO_FILE) \
 		-m 2048 \
 		-enable-kvm \

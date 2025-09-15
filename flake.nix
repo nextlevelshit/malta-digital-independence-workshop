@@ -65,6 +65,7 @@
           markdownlint-cli
           jq
           nixpkgs-fmt
+          qemu
         ];
       };
 
