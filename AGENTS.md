@@ -50,7 +50,11 @@ This file provides guidelines for AI coding agents operating within this reposit
 ## General Guidelines
 
 - Keep code concise and readable
-- Prefer declarative over imperative approaches  
+- Prefer declarative over imperative approaches
 - Document complex logic with comments
 - Test locally before cloud deployment
 - Maintain feature parity between USB/VM environments where possible
+
+## ⚠️ Critical Warnings
+
+- **NEVER RUN `nix-env`** - This can break your Nix environment. Use `nix-shell`, `nix develop`, or declarative approaches instead.
