@@ -6,7 +6,7 @@ Single-participant learning environments with local practice and cloud deploymen
 
 ```bash
 # 1. Start local VM for development/testing
-make local-vm-run
+make vm
 
 # 2. Build USB drives for participants
 make build-usb
@@ -73,7 +73,7 @@ make status-cloud  # Check health
 ## 🖥️ Local Development
 
 ```bash
-make local-vm-run  # Start VM with 15 containers
+make vm             # Start VM (simulates USB environment)
 make build-usb      # Verify build (builds ISO)
 ```
 
@@ -125,7 +125,7 @@ Based on Co-op Cloud with quality scoring:
 - `setup` - **REQUIRED FIRST**: Setup local DNS proxy
 - `recipes` - Show complete Co-op Cloud catalog
 - `deploy <app>` - Deploy locally with tab completion
-- `browser [app]` - Launch Firefox [to specific app]
+- `browser [firefox|chromium] [app]` - Launch browser [to specific app]
 - `connect <server>` - SSH to cloud server with tab completion
 - `desktop` - Start GUI session
 - `help` - Show all commands and debug info
@@ -134,10 +134,10 @@ Based on Co-op Cloud with quality scoring:
 ```bash
 # Deploy and open WordPress
 deploy wordpress
-browser wordpress          # Opens http://wordpress.workshop.local
+browser firefox wordpress   # Opens http://wordpress.workshop.local in Firefox
 
 # Just open browser
-browser                     # Opens blank page
+browser firefox             # Opens Firefox with blank page
 
 # Use tab completion
 deploy <TAB>               # Shows all available recipes
