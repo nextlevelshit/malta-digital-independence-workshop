@@ -9,7 +9,12 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixos-generators }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixos-generators,
+    }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -34,7 +39,10 @@
       ];
 
       # Common configuration
-      commonConfig = { isLiveIso ? false }:
+      commonConfig =
+        {
+          isLiveIso ? false,
+        }:
         import ./common.nix {
           inherit pkgs cloudServerNames isLiveIso;
         };
@@ -67,44 +75,55 @@
 
           (commonConfig { isLiveIso = false; })
 
-          ({ config, pkgs, lib, ... }: {
-            boot.loader.grub.enable = false;
-            boot.loader.generic-extlinux-compatible.enable = true;
+          (
+            {
+              config,
+              pkgs,
+              lib,
+              ...
+            }:
+            {
+              boot.loader.grub.enable = false;
+              boot.loader.generic-extlinux-compatible.enable = true;
 
-            # Enable networking for VM
-            networking.hostName = "workshop-vm";
-            networking.networkmanager.enable = true;
-            networking.firewall.enable = false;
+              # Enable networking for VM
+              networking.hostName = "workshop-vm";
+              networking.networkmanager.enable = true;
+              networking.firewall.enable = false;
 
-            # Hybrid console configuration - serial primary, GUI available
-            boot.kernelParams = [ "console=ttyS0,115200" "console=tty1" ];
+              # Hybrid console configuration - serial primary, GUI available
+              boot.kernelParams = [
+                "console=ttyS0,115200"
+                "console=tty1"
+              ];
 
-            # VM specific settings
-            virtualisation.memorySize = 4096;
-            virtualisation.diskSize = 40000;
+              # VM specific settings
+              virtualisation.memorySize = 4096;
+              virtualisation.diskSize = 40000;
 
-            # Hybrid mode: GUI available but serial console primary
-            virtualisation.qemu.options = [
-              "-display"
-              "gtk"
-              "-monitor"
-              "stdio"
-              # Add port forwarding for SSH
-              "-netdev"
-              "user,id=net0,hostfwd=tcp::2222-:22"
-              "-device"
-              "virtio-net,netdev=net0"
-            ];
-            # Fix the auto-login conflict with mkForce
-            services.displayManager.autoLogin = lib.mkForce {
-              enable = true;
-              user = "root";
-            };
-            # Keep GUI session commands for when GUI is used
-            services.xserver.displayManager.sessionCommands = ''
-              ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --fullscreen --maximize --hide-toolbar --hide-borders --hide-menubar --hide-toolbar --title="Workshop Terminal" &
-            '';
-          })
+              # Hybrid mode: GUI available but serial console primary
+              virtualisation.qemu.options = [
+                "-display"
+                "gtk"
+                "-monitor"
+                "stdio"
+                # Add port forwarding for SSH
+                "-netdev"
+                "user,id=net0,hostfwd=tcp::2222-:22"
+                "-device"
+                "virtio-net,netdev=net0"
+              ];
+              # Fix the auto-login conflict with mkForce
+              services.displayManager.autoLogin = lib.mkForce {
+                enable = true;
+                user = "root";
+              };
+              # Keep GUI session commands for when GUI is used
+              services.xserver.displayManager.sessionCommands = ''
+                ${pkgs.xfce.xfce4-terminal}/bin/xfce4-terminal --fullscreen --maximize --hide-toolbar --hide-borders --hide-menubar --hide-toolbar --title="Workshop Terminal" &
+              '';
+            }
+          )
         ];
       };
     };
