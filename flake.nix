@@ -113,15 +113,10 @@
                 "-device"
                 "virtio-net,netdev=net0"
               ];
-              # Fix the auto-login conflict with mkForce
-              services.displayManager.autoLogin = lib.mkForce {
-                enable = true;
-                user = "root";
-              };
-              # Keep GUI session commands for when GUI is used
-              services.xserver.displayManager.sessionCommands = ''
-                ${pkgs.gnome-terminal}/bin/gnome-terminal --full-screen --title="Workshop Terminal" &
-              '';
+               # Keep GUI session commands for when GUI is used
+               services.xserver.displayManager.sessionCommands = ''
+                 ${pkgs.gnome-terminal}/bin/gnome-terminal --full-screen --title="Workshop Terminal" &
+               '';
             }
           )
         ];
