@@ -216,6 +216,9 @@ isoConfig
 // {
   system.stateVersion = "25.05";
 
+  # Timezone Configuration
+  time.timeZone = "Europe/Berlin";
+
   # SSH Configuration
   services.openssh = {
     enable = true;
