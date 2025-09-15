@@ -1203,6 +1203,13 @@ isoConfig
     extensions = [ ];
   };
 
+  # Font packages for GUI rendering (QEMU GTK display)
+  fonts.packages = with pkgs; [
+    dejavu_fonts
+    liberation_ttf
+    noto-fonts
+  ];
+
   # GUI Configuration
   services.xserver = {
     enable = true;
