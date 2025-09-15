@@ -8,6 +8,7 @@ This file provides guidelines for AI coding agents operating within this reposit
 - **Local VM**: `make vm` (Starts local VM that simulates USB environment)
 - **Test**: `make status-cloud` (Health checks for cloud infrastructure)
 - **Deploy**: `make deploy-cloud` (Deploys 15 VMs to Hetzner Cloud)
+- **Format**: `make format` (Format Nix files)
 
 ## Code Style Guidelines
 

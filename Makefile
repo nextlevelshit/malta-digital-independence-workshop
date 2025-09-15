@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: help deploy-cloud build-usb flash-usb vm-run vm-build clean status destroy-cloud opencode lint
+.PHONY: help deploy-cloud build-usb flash-usb vm-run vm-build clean status destroy-cloud opencode format
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
@@ -27,7 +27,7 @@ help:
 	@echo ""
 	@echo "⚙️ Development:"
 	@echo "  make opencode        - Start opencode in dev shell"
-	@echo "  make lint            - Run linting checks"
+	@echo "  make format          - Format Nix files"
 	@echo ""
 	@echo "Current Config:"
 	@echo "  Domain: $(DOMAIN)"
@@ -113,11 +113,6 @@ clean:
 opencode:
 	nix develop --command opencode
 
-lint:
-	@echo "🔍 Linting project files..."
-	@nix develop -c markdownlint-cli . || true
-	@nix develop -c nixpkgs-fmt --check . || true
-
-lint-fix:
-	@echo "🎨 Formatting Nix files..."
-	@nix develop -c nixpkgs-fmt .
+format:
+	@echo "🔍 Formatting Nix files..."
+	@nix run nixpkgs#nixfmt-rfc-style *.nix

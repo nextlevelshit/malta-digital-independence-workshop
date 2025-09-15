@@ -151,6 +151,16 @@ connect <TAB>              # Shows all available servers
 - HCLOUD_TOKEN for cloud deployment
 - 2GB+ RAM for VM testing
 
+## 🛠️ Development Tools
+
+```bash
+# Format Nix files
+make format         # Format Nix files
+
+# Start development environment
+make opencode       # Start opencode in dev shell
+```
+
 ## 🧹 Cleanup
 
 ```bash
