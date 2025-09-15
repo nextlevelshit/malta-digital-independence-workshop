@@ -265,6 +265,43 @@ isoConfig // {
     };
   };
 
+  # SSH key generation for workshop user
+  systemd.services.workshop-ssh-keygen = {
+    description = "Generate SSH key for workshop user for passwordless localhost access";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    path = with pkgs; [ openssh coreutils gnugrep ];
+    script = ''
+      USER_HOME=/home/workshop
+      SSH_DIR=$USER_HOME/.ssh
+      KEY_FILE=$SSH_DIR/id_ed25519
+      AUTH_KEYS_FILE=$SSH_DIR/authorized_keys
+      mkdir -p $SSH_DIR
+      chown workshop:workshop $SSH_DIR
+      chmod 700 $SSH_DIR
+      if [ ! -f "$KEY_FILE" ]; then
+        echo "Generating SSH key for workshop user..."
+        ssh-keygen -t ed25519 -f $KEY_FILE -N "" -C "workshop@workshop-vm"
+        chown workshop:workshop $KEY_FILE $KEY_FILE.pub
+        chmod 600 $KEY_FILE
+        chmod 644 $KEY_FILE.pub
+      fi
+      PUB_KEY=$(cat $KEY_FILE.pub)
+      if ! grep -qF -- "$PUB_KEY" "$AUTH_KEYS_FILE" 2>/dev/null; then
+        echo "Adding public key to authorized_keys..."
+        echo "$PUB_KEY" >> $AUTH_KEYS_FILE
+      fi
+      
+      chown workshop:workshop $AUTH_KEYS_FILE
+      chmod 600 $AUTH_KEYS_FILE
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+      RemainAfterExit = true;
+    };
+  };
+
   services.getty.autologinUser = "workshop";
   security.sudo.wheelNeedsPassword = false;
 
