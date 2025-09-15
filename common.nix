@@ -344,6 +344,9 @@ isoConfig
     gnutar
     openssl # Add this for certificate generation
     chromium # Add Chromium browser
+    # Additional font packages for QEMU
+    dejavu_fonts
+    liberation_ttf
   ];
 
   # System Setup Service (Root Tasks)
@@ -1204,10 +1207,14 @@ isoConfig
   };
 
   # Font packages for GUI rendering (QEMU GTK display)
-  fonts.packages = with pkgs; [
+  fonts.fonts = with pkgs; [
     dejavu_fonts
     liberation_ttf
     noto-fonts
+    # Additional fonts for QEMU compatibility
+    freefont_ttf
+    ubuntu_font_family
+    cantarell-fonts
   ];
 
   # GUI Configuration
