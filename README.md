@@ -9,8 +9,8 @@ Single-participant learning environments with local practice and cloud deploymen
 make vm
 
 # 2. Build USB drives for participants
-make build-usb
-make flash-usb USB_DEVICE=/dev/sdX
+make usb-build
+make usb-flash USB_DEVICE=/dev/sdX
 
 # 3. Deploy cloud infrastructure
 export HCLOUD_TOKEN="your_token"
@@ -56,8 +56,8 @@ Pre-configured with:
 
 Build and flash:
 ```bash
-make build-usb
-make flash-usb USB_DEVICE=/dev/sdb
+make usb-build
+make usb-flash USB_DEVICE=/dev/sdb
 ```
 
 ## 🌐 Cloud Deployment
@@ -74,7 +74,7 @@ make status-cloud  # Check health
 
 ```bash
 make vm             # Start VM (simulates USB environment)
-make build-usb      # Verify build (builds ISO)
+make usb-build      # Verify build (builds ISO)
 ```
 
 The VM simulates the USB experience with identical configuration and commands.

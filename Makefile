@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: help deploy-cloud build-usb flash-usb vm-run vm-build clean status destroy-cloud opencode format
+.PHONY: help deploy-cloud usb-build usb-flash usb-test vm-run vm-build clean status destroy-cloud opencode format
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
@@ -16,9 +16,9 @@ help:
 	@echo "  make destroy-cloud   - Destroy cloud infrastructure"
 	@echo ""
 	@echo "💾 USB Boot Drive (Single Participant Environment):"
-	@echo "  make build-usb       - Build NixOS workshop ISO"
-	@echo "  make flash-usb       - Flash ISO to USB drive"
-	@echo "  make test-usb        - Test USB environment in QEMU"
+	@echo "  make usb-build       - Build NixOS workshop ISO"
+	@echo "  make usb-flash       - Flash ISO to USB drive"
+	@echo "  make usb-test        - Test USB environment in QEMU"
 	@echo ""
 	@echo "🖥️ Local Development:"
 	@echo "  make vm-run          - Start local VM (simulates USB environment)"
@@ -36,7 +36,7 @@ help:
 	@echo ""
 	@echo "Required: HCLOUD_TOKEN, SSH key at ~/.ssh/id_ed25519.pub"
 
-build-usb:
+usb-build:
 	@echo "🔨 Building NixOS workshop ISO..."
 	@if [ ! -f ~/.ssh/id_ed25519.pub ]; then \
 		echo "❌ SSH key not found at ~/.ssh/id_ed25519.pub"; \
@@ -47,7 +47,7 @@ build-usb:
 	@echo "✅ ISO built: $(ISO_FILE)"
 	@echo "📦 Size: $$(du -h $(ISO_FILE) | cut -f1)"
 
-flash-usb: build-usb
+usb-flash: usb-build
 	@if [ "$(USB_DEVICE)" = "/dev/sdX" ]; then \
 		echo "❌ Set USB_DEVICE=/dev/sdX (find with 'lsblk')"; \
 		exit 1; \
@@ -59,7 +59,7 @@ flash-usb: build-usb
 	sync
 	@echo "✅ USB drive ready!"
 
-test-usb:
+usb-test: usb-build
 	@echo "🧪 Testing USB environment in QEMU..."
 	nix develop --command qemu-system-x86_64 \
 		-cdrom $(ISO_FILE) \
@@ -75,7 +75,7 @@ vm-run:
 	@echo "🖥️ Starting workshop VM as root..."
 	nix run .#local-vm --impure
 
-vm: vm-build
+vm-build:
 	@echo "🧪 Testing VM build as root..."
 	nix build .#local-vm --impure
 	@echo "✅ VM builds successfully"

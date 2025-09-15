@@ -4,7 +4,7 @@ This file provides guidelines for AI coding agents operating within this reposit
 
 ## Build, Lint, and Test Commands
 
-- **Build**: `make build-usb` (Builds the NixOS workshop ISO)
+- **Build**: `make usb-build` (Builds the NixOS workshop ISO)
 - **Local VM**: `make vm` (Starts local VM that simulates USB environment)
 - **Test**: `make status-cloud` (Health checks for cloud infrastructure)
 - **Deploy**: `make deploy-cloud` (Deploys 15 VMs to Hetzner Cloud)
@@ -42,9 +42,9 @@ This file provides guidelines for AI coding agents operating within this reposit
 
 ## Development Workflow
 
-1. Use `make local-vm-run` for local development
+1. Use `make vm-run` for local development
 2. Test with all 15 containers to match production
-3. Use `make build-usb` for workshop USB drives
+3. Use `make usb-build` for workshop USB drives
 4. Deploy to cloud with `make deploy-cloud`
 
 ## General Guidelines
