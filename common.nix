@@ -229,9 +229,9 @@ isoConfig
 
   # Network Configuration
   networking = {
-    wireless.enable = false;
     networkmanager = {
       enable = true;
+      wifi.enable = true;
       dns = "none"; # We use dnsmasq
       ensureProfiles = {
         environmentFiles = [ "/etc/NetworkManager/workshop-wifi.env" ];
