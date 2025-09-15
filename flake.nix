@@ -113,10 +113,10 @@
                 "-device"
                 "virtio-net,netdev=net0"
               ];
-               # Keep GUI session commands for when GUI is used
-               services.xserver.displayManager.sessionCommands = ''
-                 ${pkgs.gnome-terminal}/bin/gnome-terminal --full-screen --title="Workshop Terminal" &
-               '';
+              # Keep GUI session commands for when GUI is used
+              services.xserver.displayManager.sessionCommands = ''
+                ${pkgs.gnome-terminal}/bin/gnome-terminal --maximize --title="Workshop Terminal" &
+              '';
             }
           )
         ];
