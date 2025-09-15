@@ -544,12 +544,12 @@ isoConfig // {
            echo "   Current groups: $(id -nG)"
          fi
 
-         # Check if abra is available
-         if command -v abra >/dev/null 2>&1; then
-           echo "✅ abra command found: $(which abra)"
+         # Check if abra is available via sudo
+         if sudo abra --version >/dev/null 2>&1; then
+           echo "✅ abra available via sudo: $(sudo which abra)"
          else
-           echo "❌ abra command not found in PATH"
-           echo "   PATH: $PATH"
+           echo "❌ abra not available via sudo"
+           echo "   Check: systemctl status workshop-abra-install"
            return 1
          fi
 
