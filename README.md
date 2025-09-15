@@ -6,9 +6,9 @@ Single-participant learning environments with local practice and cloud deploymen
 
 ```bash
 # 1. Start local VM for development/testing
-make vm-run
+make local-vm-run
 
-# 2. Build USB drives for participants  
+# 2. Build USB drives for participants
 make build-usb
 make flash-usb USB_DEVICE=/dev/sdX
 
@@ -21,9 +21,9 @@ make deploy-cloud
 
 ### Local Practice (USB/VM)
 ```bash
-setup-traefik              # REQUIRED: Setup local proxy first!
+setup                      # REQUIRED: Setup local proxy first!
 recipes                    # Show available apps
-deploy wordpress           # Deploy locally  
+deploy wordpress           # Deploy locally
 browser wordpress          # Open directly in Firefox
 ```
 
@@ -73,8 +73,8 @@ make status-cloud  # Check health
 ## 🖥️ Local Development
 
 ```bash
-make vm-run        # Start VM
-make vm-build      # Verify build
+make local-vm-run  # Start VM with 15 containers
+make build-usb      # Verify build (builds ISO)
 ```
 
 The VM simulates the USB experience with identical configuration and commands.
@@ -122,11 +122,11 @@ Based on Co-op Cloud with quality scoring:
 ## 📚 Enhanced Commands
 
 **In USB/VM environments**:
-- `setup-traefik` - **REQUIRED FIRST**: Setup local DNS proxy
+- `setup` - **REQUIRED FIRST**: Setup local DNS proxy
 - `recipes` - Show complete Co-op Cloud catalog
 - `deploy <app>` - Deploy locally with tab completion
 - `browser [app]` - Launch Firefox [to specific app]
-- `connect <server>` - SSH to cloud server with tab completion  
+- `connect <server>` - SSH to cloud server with tab completion
 - `desktop` - Start GUI session
 - `help` - Show all commands and debug info
 
