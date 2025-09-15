@@ -12,8 +12,6 @@ let
     isoImage = {
       makeEfiBootable = true;
       makeUsbBootable = true;
-      # Custom boot menu label for workshop
-      label = "CODECRISPIES_WORKSHOP";
     };
   };
 
@@ -236,6 +234,7 @@ isoConfig
   networking = {
     networkmanager = {
       enable = true;
+      wifi.backend = "iwd"; # Use iwd backend for better WiFi support
       dns = "none"; # We use dnsmasq
       ensureProfiles = {
         environmentFiles = [ "/etc/NetworkManager/workshop-wifi.env" ];
@@ -297,6 +296,9 @@ isoConfig
 
   # Disable systemd-resolved (conflicts with dnsmasq)
   services.resolved.enable = false;
+
+  # Enable iwd for better WiFi support
+  networking.wireless.iwd.enable = true;
 
   # Container Runtime
   virtualisation.docker.enable = true;
@@ -367,6 +369,8 @@ isoConfig
     git
     networkmanager
     networkmanagerapplet # Network Manager GUI for GNOME
+    gnome.gnome-control-center # GNOME Settings (includes network panel)
+    iwd # iNet wireless daemon for better WiFi support
     docker
     docker-compose
     gnome-terminal

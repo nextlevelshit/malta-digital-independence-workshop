@@ -54,6 +54,7 @@ This file provides guidelines for AI coding agents operating within this reposit
 - Document complex logic with comments
 - Test locally before cloud deployment
 - Maintain feature parity between USB/VM environments where possible
+- **ALWAYS check package existence on search.nixos.org before adding new packages**
 
 ## ⚠️ Critical Warnings
 
