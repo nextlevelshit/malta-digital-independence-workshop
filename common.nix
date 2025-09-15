@@ -334,6 +334,7 @@ isoConfig
     networkmanager
     docker
     docker-compose
+    gnome-terminal
     bash
     wget
     jq
@@ -347,6 +348,7 @@ isoConfig
     # Additional font packages for QEMU
     dejavu_fonts
     liberation_ttf
+    fontconfig
   ];
 
   # System Setup Service (Root Tasks)
@@ -1098,40 +1100,22 @@ isoConfig
             }
           
              browser() {
-               local target_url="about:blank"
-               local browser_cmd="firefox"
+                local target_url="about:blank"
 
-               # Check if first argument is a browser choice
-               if [[ "$1" == "firefox" || "$1" == "chromium" ]]; then
-                 browser_cmd="$1"
-                 shift
-               fi
+                if [[ -n "$1" ]]; then
+                  target_url="http://$1.workshop.local"
+                  echo "🌐 Opening $1 at $target_url in Firefox"
+                else
+                  echo "🌐 Opening Firefox browser"
+                fi
 
-               if [[ -n "$1" ]]; then
-                 target_url="http://$1.workshop.local"
-                 echo "🌐 Opening $1 at $target_url (using $browser_cmd)"
-               else
-                 echo "🌐 Opening $browser_cmd browser"
-               fi
-
-               if [[ -n "$DISPLAY" ]]; then
-                 case "$browser_cmd" in
-                   firefox)
-                     firefox "$target_url" &
-                     ;;
-                   chromium)
-                     chromium --no-sandbox "$target_url" &
-                     ;;
-                   *)
-                     echo "❌ Unknown browser: $browser_cmd"
-                     return 1
-                     ;;
-                 esac
-               else
-                 echo "❌ No GUI session. Run 'desktop' first"
-                 echo "🌐 Target was: $target_url"
-               fi
-             }
+                if [[ -n "$DISPLAY" ]]; then
+                  firefox "$target_url" &
+                else
+                  echo "❌ No GUI session. Run 'desktop' first"
+                  echo "🌐 Target was: $target_url"
+                fi
+              }
           
             recipes() {
               echo "📚 Complete Co-op Cloud Recipe Catalog:"
@@ -1208,19 +1192,51 @@ isoConfig
 
   # Font packages for GUI rendering (QEMU GTK display)
   fonts.packages = with pkgs; [
-    dejavu_fonts
+    dejavu_fonts  # DejaVu fonts including Sans Mono
     liberation_ttf
     noto-fonts
     cantarell-fonts  # GNOME default font
     ubuntu-classic  # Additional font for compatibility
+    freefont_ttf  # Additional fonts
+    fontconfig  # Enhanced font configuration for QEMU
   ];
 
-  # GUI Configuration
-  services.xserver = {
-    enable = true;
-    desktopManager.gnome.enable = true;
-    displayManager.gdm.enable = true;
-  };
+   # GUI Configuration
+   services.xserver = {
+     enable = true;
+     desktopManager.gnome.enable = true;
+     displayManager.gdm.enable = true;
+   };
+
+
+
+   # Exclude unnecessary GNOME packages
+   environment.gnome.excludePackages = with pkgs; [
+     gnome-photos
+     gnome-tour
+     gnome-music
+     gnome-maps
+     cheese
+     epiphany
+     geary
+     evince
+     totem
+     simple-scan
+     yelp
+     gnome-contacts
+     gnome-weather
+     gnome-clocks
+     gnome-terminal
+   ];
+
+    # Auto-start console and set GNOME settings
+    environment.etc."xdg/autostart/gnome-console.desktop".text = ''
+      [Desktop Entry]
+      Type=Application
+      Name=Workshop Console
+      Exec=sh -c "gsettings set org.gnome.shell favorite-apps \"['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'firefox.desktop']\" && gsettings set org.gnome.shell welcome-dialog-last-shown-version \"999999\" && gnome-console --maximize --hide-menubar --title=\"Workshop Console\""
+      NoDisplay=false
+    '';
 
   # Auto-login configuration (renamed in newer NixOS)
   services.displayManager.autoLogin = {
@@ -1228,14 +1244,12 @@ isoConfig
     user = "workshop";
   };
 
-  # Disable GNOME welcome tour and configure favorite apps
-  services.xserver.desktopManager.gnome = {
-    extraGSettingsOverrides = ''
-      [org.gnome.tour]
-      enable-autostart=false
-
-      [org.gnome.shell]
-      favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Terminal.desktop', 'firefox.desktop', 'chromium-browser.desktop']
-    '';
-  };
+    # Configure GNOME favorite apps and disable welcome dialog
+    services.xserver.desktopManager.gnome = {
+      extraGSettingsOverrides = ''
+        [org.gnome.shell]
+        favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'firefox.desktop']
+        welcome-dialog-last-shown-version='999999'
+      '';
+    };
 }
