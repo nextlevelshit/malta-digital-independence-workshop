@@ -233,6 +233,27 @@ isoConfig
     networkmanager = {
       enable = true;
       dns = "none"; # We use dnsmasq
+      ensureProfiles = {
+        environmentFiles = [ "/etc/NetworkManager/workshop-wifi.env" ];
+        profiles = {
+          "workshop-hotspot" = {
+            connection = {
+              id = "workshop-hotspot";
+              type = "wifi";
+              autoconnect = true;
+              autoconnect-priority = 10;
+            };
+            wifi = {
+              ssid = "$WORKSHOP_SSID";
+              mode = "infrastructure";
+            };
+            wifi-security = {
+              key-mgmt = "wpa-psk";
+              psk = "$WORKSHOP_PSK";
+            };
+          };
+        };
+      };
     };
     hostName = if isLiveIso then "workshop-live" else "workshop-vm";
     hosts."127.0.0.1" = [
@@ -241,6 +262,15 @@ isoConfig
     ];
     nameservers = lib.mkForce [ "127.0.0.1" ];
     firewall.enable = false; # Workshop environment
+  };
+
+  # WiFi credentials file
+  environment.etc."NetworkManager/workshop-wifi.env" = {
+    text = ''
+      WORKSHOP_SSID="ziegel"
+      WORKSHOP_PSK="1234567890"
+    '';
+    mode = "0600";
   };
 
   # DNS Configuration - Wildcard *.workshop.local -> 127.0.0.1
@@ -1125,10 +1155,10 @@ isoConfig
               echo "🧪 Tier 3 - Community: collabora croc dokuwiki ghost loomio..."
               echo "🌐 Extended: matrix-synapse rocketchat gitlab n8n mastodon..."
               echo ""
-               echo "🚀 Usage:"
-               echo "  deploy <recipe>     - Deploy locally"
-               echo "  browser [firefox|chromium] [recipe] - Open in browser"
-               echo "  📖 Full catalog: https://recipes.coopcloud.tech"
+              echo "🚀 Usage:"
+              echo "  deploy <recipe>     - Deploy locally"
+              echo "  browser  [recipe] - Open in browser"
+              echo "  📖 Full catalog: https://recipes.coopcloud.tech"
               echo ""
               echo "💡 Tab completion: deploy <TAB> or browser <TAB>"
             }
@@ -1156,7 +1186,7 @@ isoConfig
               echo "  setup              - Setup local proxy (REQUIRED FIRST!)"
               echo "  recipes            - Show all available apps"
               echo "  deploy <recipe>    - Deploy app locally"
-              echo "  browser [firefox|chromium] [recipe] - Launch browser [to app]"
+              echo "  browser [recipe] - Launch browser [to app]"
               echo "  desktop            - Start GUI session"
               echo "  sudo abra          - Run abra CLI directly as root"
               echo ""
@@ -1185,58 +1215,51 @@ isoConfig
     };
   };
 
-  programs.chromium = {
-    enable = true;
-    extensions = [ ];
-  };
-
   # Font packages for GUI rendering (QEMU GTK display)
   fonts.packages = with pkgs; [
-    dejavu_fonts  # DejaVu fonts including Sans Mono
+    dejavu_fonts # DejaVu fonts including Sans Mono
     liberation_ttf
     noto-fonts
-    cantarell-fonts  # GNOME default font
-    ubuntu-classic  # Additional font for compatibility
-    freefont_ttf  # Additional fonts
-    fontconfig  # Enhanced font configuration for QEMU
+    cantarell-fonts # GNOME default font
+    ubuntu-classic # Additional font for compatibility
+    freefont_ttf # Additional fonts
+    fontconfig # Enhanced font configuration for QEMU
   ];
 
-   # GUI Configuration
-   services.xserver = {
-     enable = true;
-     desktopManager.gnome.enable = true;
-     displayManager.gdm.enable = true;
-   };
+  # GUI Configuration
+  services.xserver = {
+    enable = true;
+    desktopManager.gnome.enable = true;
+    displayManager.gdm.enable = true;
+  };
 
+  # Exclude unnecessary GNOME packages
+  environment.gnome.excludePackages = with pkgs; [
+    gnome-photos
+    gnome-tour
+    gnome-music
+    gnome-maps
+    cheese
+    epiphany
+    geary
+    evince
+    totem
+    simple-scan
+    yelp
+    gnome-contacts
+    gnome-weather
+    gnome-clocks
+    gnome-terminal
+  ];
 
-
-   # Exclude unnecessary GNOME packages
-   environment.gnome.excludePackages = with pkgs; [
-     gnome-photos
-     gnome-tour
-     gnome-music
-     gnome-maps
-     cheese
-     epiphany
-     geary
-     evince
-     totem
-     simple-scan
-     yelp
-     gnome-contacts
-     gnome-weather
-     gnome-clocks
-     gnome-terminal
-   ];
-
-    # Auto-start console and set GNOME settings
-    environment.etc."xdg/autostart/gnome-console.desktop".text = ''
-      [Desktop Entry]
-      Type=Application
-      Name=Workshop Console
-      Exec=sh -c "gsettings set org.gnome.shell favorite-apps \"['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'firefox.desktop']\" && gsettings set org.gnome.shell welcome-dialog-last-shown-version \"999999\" && gnome-console --maximize --hide-menubar --title=\"Workshop Console\""
-      NoDisplay=false
-    '';
+  # Auto-start console and set GNOME settings
+  environment.etc."xdg/autostart/gnome-console.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=Workshop Console
+    Exec=sh -c "gsettings set org.gnome.shell favorite-apps \"['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'firefox.desktop']\" && gsettings set org.gnome.shell welcome-dialog-last-shown-version \"999999\" && gnome-console --maximize --hide-menubar --title=\"Workshop Console\""
+    NoDisplay=false
+  '';
 
   # Auto-login configuration (renamed in newer NixOS)
   services.displayManager.autoLogin = {
@@ -1244,12 +1267,12 @@ isoConfig
     user = "workshop";
   };
 
-    # Configure GNOME favorite apps and disable welcome dialog
-    services.xserver.desktopManager.gnome = {
-      extraGSettingsOverrides = ''
-        [org.gnome.shell]
-        favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'firefox.desktop']
-        welcome-dialog-last-shown-version='999999'
-      '';
-    };
+  # Configure GNOME favorite apps and disable welcome dialog
+  services.xserver.desktopManager.gnome = {
+    extraGSettingsOverrides = ''
+      [org.gnome.shell]
+      favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'firefox.desktop']
+      welcome-dialog-last-shown-version='999999'
+    '';
+  };
 }

@@ -113,7 +113,7 @@
                 "-device"
                 "virtio-net,netdev=net0"
               ];
-               # GUI session commands handled in common.nix
+              # GUI session commands handled in common.nix
             }
           )
         ];
