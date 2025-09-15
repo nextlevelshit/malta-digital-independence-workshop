@@ -1213,7 +1213,7 @@ isoConfig
   # GUI Configuration
   services.xserver = {
     enable = true;
-    desktopManager.xfce.enable = true;
-    displayManager.lightdm.enable = true;
+    desktopManager.gnome.enable = true;
+    displayManager.gdm.enable = true;
   };
 }
