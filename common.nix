@@ -1214,12 +1214,20 @@ isoConfig
   services.xserver = {
     enable = true;
     desktopManager.gnome.enable = true;
-    displayManager.gdm = {
-      enable = true;
-      autoLogin = {
-        enable = true;
-        user = "workshop";
-      };
-    };
+    displayManager.gdm.enable = true;
+  };
+
+  # Auto-login configuration (renamed in newer NixOS)
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "workshop";
+  };
+
+  # Disable GNOME welcome tour
+  services.xserver.desktopManager.gnome = {
+    extraGSettingsOverrides = ''
+      [org.gnome.tour]
+      enable-autostart=false
+    '';
   };
 }
