@@ -1223,11 +1223,14 @@ isoConfig
     user = "workshop";
   };
 
-  # Disable GNOME welcome tour
+  # Disable GNOME welcome tour and configure favorite apps
   services.xserver.desktopManager.gnome = {
     extraGSettingsOverrides = ''
       [org.gnome.tour]
       enable-autostart=false
+
+      [org.gnome.shell]
+      favorite-apps=['org.gnome.TextEditor.desktop', 'org.gnome.Terminal.desktop', 'firefox.desktop', 'chromium-browser.desktop']
     '';
   };
 }
