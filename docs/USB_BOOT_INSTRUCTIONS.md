@@ -64,8 +64,8 @@
 1. **NixOS Boot Screen** appears
 2. System loads (takes 30-60 seconds)
 3. **Desktop environment** starts automatically
-4. **Terminal opens** with CODE CRISPIES welcome message
-5. You see available servers and commands
+4. **GNOME desktop appears** (terminal does not auto-open)
+5. Open terminal manually: click terminal icon or press `Ctrl + Alt + T`
 
 ---
 
@@ -111,9 +111,10 @@ Name: Android, Password: (ask facilitator)
 → You didn't press the boot key fast enough
 → Restart and try again immediately
 
-**Terminal doesn't open**
-→ Click terminal icon in taskbar
+**Terminal doesn't open automatically**
+→ Click terminal icon in taskbar (GNOME Console)
 → Or press `Ctrl + Alt + T`
+→ Note: Terminal no longer auto-starts to prevent boot hangs
 
 **Can't connect to internet**
 → Try different WiFi network
