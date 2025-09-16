@@ -6,7 +6,7 @@ export
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
 BUILD_DIR := ./build
-ISO_FILE := $(shell ls $(BUILD_DIR)/iso/result/iso/*.iso 2>/dev/null | head -1)
+ISO_FILE = $(shell ls $(BUILD_DIR)/iso/iso/*.iso 2>/dev/null | head -1)
 
 help:
 	@echo "CODE CRISPIES Workshop Infrastructure"
