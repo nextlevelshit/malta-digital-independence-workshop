@@ -1,6 +1,6 @@
-# 🚀 DIGITAL INDEPENDENCE DAY Workshop Infrastructure
+# 🚀 SCIENCE IN THE CITY Workshop Infrastructure
 
-Single-participant learning environments with local practice and cloud deployment capabilities.
+Single-participant learning environments for hands-on Co-op Cloud deployment practice.
 
 ## 🚀 Quick Start
 
@@ -12,9 +12,8 @@ make vm
 make usb-build
 make usb-flash USB_DEVICE=/dev/sdX
 
-# 3. Deploy cloud infrastructure
-export HCLOUD_TOKEN="your_token"
-make deploy-cloud
+# 3. Test your USB build
+make usb-test
 ```
 
 ## 🎯 Learning Flow
@@ -27,12 +26,10 @@ deploy wordpress           # Deploy locally
 browser wordpress          # Open directly in Firefox
 ```
 
-### Cloud Deployment
+### Local Practice Only
 ```bash
-connect hopper             # SSH to cloud server
-# Same abra commands work here
-abra app new wordpress -S --domain=blog.hopper.codecrispi.es
-abra app deploy blog.hopper.codecrispi.es
+# Focus on local development and testing
+# All deployment happens locally on your USB/VM
 ```
 
 ## 🗃️ Architecture
@@ -41,7 +38,7 @@ abra app deploy blog.hopper.codecrispi.es
 
 - **USB Boot**: Bootable NixOS with Docker + abra for hands-on learning
 - **Local VM**: Identical environment for development/testing  
-- **Cloud Servers**: 15 production servers (hopper, curie, lovelace, etc.)
+- **Local Environment**: Self-contained workshop environment
 - **Wildcard DNS**: `*.workshop.local` resolves to `127.0.0.1` via dnsmasq
 
 ## 💾 USB Environment
@@ -60,14 +57,13 @@ make usb-build
 make usb-flash USB_DEVICE=/dev/sdb
 ```
 
-## 🌐 Cloud Deployment
+## 🧪 Testing & Validation
 
-Creates 15 Hetzner VMs at `{name}.codecrispi.es`:
+Test your workshop environment:
 
 ```bash
-export HCLOUD_TOKEN="your_token"
-make deploy-cloud
-make status-cloud  # Check health
+make usb-test      # Test ISO in QEMU
+make status-local  # Check local services
 ```
 
 ## 🖥️ Local Development
@@ -131,7 +127,7 @@ Based on Co-op Cloud with quality scoring:
 - `recipes` - Show complete Co-op Cloud catalog
 - `deploy <app>` - Deploy locally with tab completion
 - `browser [app]` - Launch Firefox [to specific app]
-- `connect <server>` - SSH to cloud server with tab completion
+- `connect <server>` - SSH connection helper (local use only)
 - `desktop` - Start GUI session
 - `help` - Show all commands and debug info
 
@@ -146,15 +142,15 @@ browser                     # Opens Firefox with blank page
 
 # Use tab completion
 deploy <TAB>               # Shows all available recipes
-connect <TAB>              # Shows all available servers
+browser <TAB>              # Shows deployed applications
 ```
 
 ## 🔧 Prerequisites
 
 - Nix with flakes enabled
 - SSH key at `~/.ssh/id_ed25519.pub`
-- HCLOUD_TOKEN for cloud deployment
 - 2GB+ RAM for VM testing
+- USB drive (8GB+) for workshop distribution
 
 ## 🛠️ Development Tools
 
@@ -170,7 +166,6 @@ make opencode       # Start opencode in dev shell
 
 ```bash
 make clean         # Clean build artifacts (./build/ and ./result/)
-make destroy-cloud # Cloud infrastructure
 ```
 
 ## 🔍 Troubleshooting

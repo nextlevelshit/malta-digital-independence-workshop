@@ -2,8 +2,7 @@
 
 ### Quick Reference Card
 
-**Your assigned server:** `__________.codecrispi.es`
-**Workshop WiFi:** `CODE_CRISPIES_GUEST` / Password: `workshop2024`
+**Workshop WiFi:** `CODE_CRISPIES` / Password: `scienceinthecity2025`
 
 ---
 
@@ -72,10 +71,10 @@
 ## Getting Started Commands
 
 ```bash
-# Connect to your assigned server
-connect hopper
+# Set up your local environment
+setup
 
-# See available app recipes  
+# See available app recipes
 recipes
 
 # Get help

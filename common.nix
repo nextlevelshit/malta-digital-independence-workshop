@@ -1,7 +1,6 @@
 {
   pkgs,
   lib ? pkgs.lib,
-  cloudServerNames,
   isLiveIso ? false,
   ...
 }:
@@ -604,11 +603,10 @@ isoConfig
   programs.bash.interactiveShellInit =
     let
       recipeList = builtins.concatStringsSep " " allRecipes;
-      serverList = builtins.concatStringsSep " " cloudServerNames;
     in
     ''
           # Workshop Environment Welcome
-          echo "🚀 CODE CRISPIES Workshop Environment"
+          echo "🚀 SCIENCE IN THE CITY Workshop Environment"
           echo "Mode: Local Development (Offline Co-op Cloud)"
           echo ""
         
@@ -1208,13 +1206,9 @@ isoConfig
           }
         
           connect() {
-            if [[ -z "$1" ]]; then
-              echo "Usage: connect <name>"
-              echo "Available: ${serverList}"
-              return 1
-            fi
-            echo "🔌 Connecting to $1.codecrispi.es..."
-            ssh -o StrictHostKeyChecking=no workshop@$1.codecrispi.es
+            echo "🔌 SSH connection helper (workshop environment)"
+            echo "Usage: ssh -o StrictHostKeyChecking=no user@host"
+            echo "Note: This workshop focuses on local development only"
           }
         
            browser() {
@@ -1296,35 +1290,35 @@ isoConfig
              echo "  4. Use 'browser <app>' to access deployed services"
            }
 
-           help() {
-             echo "🚀 CODE CRISPIES Workshop Commands:"
-             echo ""
-             echo "🏠 Local Development:"
-             echo "  setup              - Setup local proxy (REQUIRED FIRST!)"
-             echo "  recipes            - Show all available apps"
-             echo "  deploy <recipe>    - Deploy app locally"
-             echo "  browser [recipe] - Launch browser [to app]"
-             echo "  desktop            - Start GUI session"
-             echo "  sudo abra          - Run abra CLI directly as root"
-             echo ""
-             echo "🌐 Network:"
-             echo "  network_help       - Network configuration guide"
-             echo ""
-             echo "☁️ Cloud Access:"
-             echo "  connect <name>     - SSH to cloud server"
-             echo "  Available: ${serverList}"
-             echo ""
-             echo "🔍 Debug:"
-             echo "  docker service ls  - List running services"
-             echo "  systemctl status dnsmasq - Check DNS"
-             echo "  systemctl status workshop-abra-install - Check abra installation"
-             echo ""
-             echo "📚 Learning Flow:"
-             echo "  1. setup"
-             echo "  2. deploy wordpress"
-             echo "  3. browser wordpress"
-             echo "  4. connect hopper"
-           }
+            help() {
+              echo "🚀 SCIENCE IN THE CITY Workshop Commands:"
+              echo ""
+              echo "🏠 Local Development:"
+              echo "  setup              - Setup local proxy (REQUIRED FIRST!)"
+              echo "  recipes            - Show all available apps"
+              echo "  deploy <recipe>    - Deploy app locally"
+              echo "  browser [recipe] - Launch browser [to app]"
+              echo "  desktop            - Start GUI session"
+              echo "  sudo abra          - Run abra CLI directly as root"
+              echo ""
+              echo "🌐 Network:"
+              echo "  network_help       - Network configuration guide"
+              echo ""
+              echo "🔧 Workshop Tools:"
+              echo "  connect            - SSH connection helper"
+              echo "  help               - Show this help message"
+              echo ""
+              echo "🔍 Debug:"
+              echo "  docker service ls  - List running services"
+              echo "  systemctl status dnsmasq - Check DNS"
+              echo "  systemctl status workshop-abra-install - Check abra installation"
+              echo ""
+              echo "📚 Learning Flow:"
+              echo "  1. setup"
+              echo "  2. deploy wordpress"
+              echo "  3. browser wordpress"
+              echo "  4. explore workshop environment"
+            }
     '';
 
   programs.firefox = {

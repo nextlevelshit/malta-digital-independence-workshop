@@ -6,8 +6,8 @@ This file provides guidelines for AI coding agents operating within this reposit
 
 - **Build**: `make usb-build` (Builds the NixOS workshop ISO)
 - **Local VM**: `make vm` (Starts local VM that simulates USB environment)
-- **Test**: `make status-cloud` (Health checks for cloud infrastructure)
-- **Deploy**: `make deploy-cloud` (Deploys 15 VMs to Hetzner Cloud)
+- **Test**: `make usb-test` (Test USB environment in QEMU)
+- **Deploy**: `make usb-build` (Build workshop USB ISO)
 - **Format**: `make format` (Format Nix files)
 
 ## Code Style Guidelines
@@ -27,32 +27,32 @@ This file provides guidelines for AI coding agents operating within this reposit
 
 ## Container Architecture
 
-- **Local VM**: Provides infrastructure to deploy up to 15 containers on demand (matching production count)
-- **Container Names**: hopper, curie, lovelace, noether, hamilton, franklin, johnson, clarke, goldberg, liskov, wing, rosen, shaw, karp, rich
-- **Networking**: Private networking with NAT for local development
-- **DNS**: Local `.local` domain resolution for testing
+- **Local VM**: Provides self-contained workshop environment
+- **Container Names**: workshop-local (single container environment)
+- **Networking**: Local networking with DNS resolution
+- **DNS**: `*.workshop.local` domain resolution for testing
 
 ## Available Scripts
 
-- `connect <name>` - SSH into specific container
-- `containers` - List all containers with IPs  
-- `logs` - Show container setup logs
+- `setup` - Initialize local workshop environment
+- `deploy <recipe>` - Deploy Co-op Cloud applications
+- `browser [app]` - Open applications in Firefox
 - `recipes` - Display available Co-op Cloud recipes
 - `help` - Show command help
 
 ## Development Workflow
 
-1. Use `make vm-run` for local development
-2. Test with all 15 containers to match production
+1. Use `make vm` for local development testing
+2. Test workshop environment with `make usb-test`
 3. Use `make usb-build` for workshop USB drives (outputs to ./build/iso/)
-4. Deploy to cloud with `make deploy-cloud`
+4. Focus on local deployment and learning
 
 ## General Guidelines
 
 - Keep code concise and readable
 - Prefer declarative over imperative approaches
 - Document complex logic with comments
-- Test locally before cloud deployment
+- Test locally in VM before USB deployment
 - Maintain feature parity between USB/VM environments where possible
 - **ALWAYS check package existence on search.nixos.org before adding new packages**
 
