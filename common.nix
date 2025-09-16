@@ -216,6 +216,16 @@ isoConfig
 // {
   system.stateVersion = "25.05";
 
+  # Allow unfree packages in order to install firmware for proprietary hardware (mainly for wifi controller necessary)
+  #nixpkgs.config.allowUnfree = true;
+
+  # Hardware firmware for WiFi controllers
+  #hardware.enableAllFirmware = true;
+  hardware.enableRedistributableFirmware = true;
+
+  # Latest kernel for better hardware support
+  #boot.kernelPackages = pkgs.linuxPackages_latest;
+
   # Timezone Configuration
   time.timeZone = "Europe/Berlin";
 
@@ -349,7 +359,7 @@ isoConfig
      };
    };
 
-   services.getty.autologinUser = "workshop";
+  services.getty.autologinUser = "workshop";
   security.sudo.wheelNeedsPassword = false;
 
   # System Packages
@@ -1375,14 +1385,14 @@ isoConfig
     gnome-terminal
   ];
 
-  # Auto-start console and set GNOME settings
-  environment.etc."xdg/autostart/gnome-console.desktop".text = ''
-    [Desktop Entry]
-    Type=Application
-    Name=Workshop Console
-    Exec=sh -c "gsettings set org.gnome.shell favorite-apps \"['org.gnome.TextEditor.desktop', 'org.gnome.Console.desktop', 'firefox.desktop']\" && gsettings set org.gnome.shell welcome-dialog-last-shown-version \"999999\" && gnome-console --maximize --hide-menubar --title=\"Workshop Console\""
-    NoDisplay=false
-  '';
+  # Auto-start GNOME settings commented out to prevent any potential boot hangs
+  # environment.etc."xdg/autostart/gnome-settings.desktop".text = ''
+  #   [Desktop Entry]
+  #   Type=Application
+  #   Name=Workshop GNOME Settings
+  #   Exec=sh -c "gsettings set org.gnome.shell favorite-apps \"['org.gnome.TextEditor.desktop', 'firefox.desktop']\" && gsettings set org.gnome.shell welcome-dialog-last-shown-version \"999999\""
+  #   NoDisplay=false
+  # '';
 
   # Auto-login configuration (renamed in newer NixOS)
   services.displayManager.autoLogin = {
