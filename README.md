@@ -74,10 +74,15 @@ make status-cloud  # Check health
 
 ```bash
 make vm             # Start VM (simulates USB environment)
-make usb-build      # Verify build (builds ISO)
+make usb-build      # Build ISO to ./build/iso/
+make usb-test       # Test ISO in QEMU
 ```
 
 The VM simulates the USB experience with identical configuration and commands.
+
+**Build Locations:**
+- **USB ISOs**: `./build/iso/result/iso/*.iso`
+- **VM builds**: `./result/` (Nix default)
 
 ## 📚 Complete Recipe Catalog
 
@@ -164,7 +169,7 @@ make opencode       # Start opencode in dev shell
 ## 🧹 Cleanup
 
 ```bash
-make clean         # Local artifacts
+make clean         # Clean build artifacts (./build/ and ./result/)
 make destroy-cloud # Cloud infrastructure
 ```
 

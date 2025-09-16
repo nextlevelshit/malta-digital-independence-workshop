@@ -5,7 +5,8 @@ export
 
 DOMAIN := $(or $(WORKSHOP_DOMAIN),codecrispi.es)
 USB_DEVICE := $(or $(USB_DEVICE),/dev/sdX)
-ISO_FILE := $(shell ls result/iso/*.iso 2>/dev/null | head -1)
+BUILD_DIR := ./build
+ISO_FILE := $(shell ls $(BUILD_DIR)/iso/result/iso/*.iso 2>/dev/null | head -1)
 
 help:
 	@echo "CODE CRISPIES Workshop Infrastructure"
@@ -43,7 +44,8 @@ usb-build:
 		echo "Generate with: ssh-keygen -t ed25519"; \
 		exit 1; \
 	fi
-	nix build .#live-iso --show-trace
+	@mkdir -p $(BUILD_DIR)
+	nix build .#live-iso --out-link $(BUILD_DIR)/iso --show-trace
 	@echo "✅ ISO built: $(ISO_FILE)"
 	@echo "📦 Size: $$(du -h $(ISO_FILE) | cut -f1)"
 
@@ -108,7 +110,7 @@ destroy-cloud:
 	cd terraform && terraform destroy -auto-approve
 
 clean:
-	rm -rf result .direnv terraform/.terraform terraform/terraform.tfstate* workshop-vm.*
+	rm -rf result $(BUILD_DIR) .direnv terraform/.terraform terraform/terraform.tfstate* workshop-vm.*
 	@echo "🧹 Cleaned up build artifacts"
 
 opencode:

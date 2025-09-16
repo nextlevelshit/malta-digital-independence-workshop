@@ -44,7 +44,7 @@ This file provides guidelines for AI coding agents operating within this reposit
 
 1. Use `make vm-run` for local development
 2. Test with all 15 containers to match production
-3. Use `make usb-build` for workshop USB drives
+3. Use `make usb-build` for workshop USB drives (outputs to ./build/iso/)
 4. Deploy to cloud with `make deploy-cloud`
 
 ## General Guidelines
@@ -55,6 +55,12 @@ This file provides guidelines for AI coding agents operating within this reposit
 - Test locally before cloud deployment
 - Maintain feature parity between USB/VM environments where possible
 - **ALWAYS check package existence on search.nixos.org before adding new packages**
+
+## Build Locations
+
+- **USB ISOs**: `./build/iso/result/iso/*.iso` (custom build directory)
+- **VM builds**: `./result/` (Nix default symlink)
+- **Clean command**: Removes both `./build/` and `./result/` directories
 
 ## ⚠️ Critical Warnings
 
