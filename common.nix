@@ -234,29 +234,8 @@ isoConfig
   networking = {
     networkmanager = {
       enable = true;
-      wifi.backend = "iwd"; # Use iwd backend for better WiFi support
+      wifi.backend = "wpa_supplicant"; # Standard backend for live ISOs
       dns = "none"; # We use dnsmasq
-      ensureProfiles = {
-        environmentFiles = [ "/etc/NetworkManager/workshop-wifi.env" ];
-        profiles = {
-          "workshop-hotspot" = {
-            connection = {
-              id = "workshop-hotspot";
-              type = "wifi";
-              autoconnect = true;
-              autoconnect-priority = 10;
-            };
-            wifi = {
-              ssid = "$WORKSHOP_SSID";
-              mode = "infrastructure";
-            };
-            wifi-security = {
-              key-mgmt = "wpa-psk";
-              psk = "$WORKSHOP_PSK";
-            };
-          };
-        };
-      };
     };
     hostName = if isLiveIso then "workshop-live" else "workshop-vm";
     hosts."127.0.0.1" = [
@@ -296,9 +275,6 @@ isoConfig
 
   # Disable systemd-resolved (conflicts with dnsmasq)
   services.resolved.enable = false;
-
-  # Enable iwd for better WiFi support
-  networking.wireless.iwd.enable = true;
 
   # Container Runtime
   virtualisation.docker.enable = true;
@@ -370,7 +346,9 @@ isoConfig
     networkmanager
     networkmanagerapplet # Network Manager GUI for GNOME
     gnome-control-center # GNOME Settings (includes network panel)
-    iwd # iNet wireless daemon for better WiFi support
+    wpa_supplicant # Standard WiFi supplicant
+    wirelesstools # Standard WiFi tools
+    iw # Modern WiFi tools
     docker
     docker-compose
     gnome-terminal
