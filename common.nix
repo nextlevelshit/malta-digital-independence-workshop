@@ -423,7 +423,7 @@ isoConfig
     gnutar
     openssl # Add this for certificate generation
     # Additional font packages for QEMU
-    chromium # Add Chromium browser
+    #chromium # Add Chromium browser
     firefox
     dejavu_fonts
     liberation_ttf
@@ -571,31 +571,6 @@ isoConfig
         "TERM=xterm-256color"
         "HOME=/root"
       ];
-    };
-  };
-
-  # Set Firefox as default browser
-  systemd.services.workshop-set-default-browser = {
-    description = "Set Firefox as the default browser for workshop user";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" ];
-    path = with pkgs; [
-      xdg-utils
-      coreutils
-      su
-    ];
-    script = ''
-      # Set Firefox as default browser for workshop user
-      su - workshop -c "xdg-settings set default-web-browser firefox.desktop"
-      # Also set MIME types for HTML files
-      su - workshop -c "xdg-mime default firefox.desktop text/html"
-      su - workshop -c "xdg-mime default firefox.desktop x-scheme-handler/http"
-      su - workshop -c "xdg-mime default firefox.desktop x-scheme-handler/https"
-    '';
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      User = "root";
     };
   };
 
