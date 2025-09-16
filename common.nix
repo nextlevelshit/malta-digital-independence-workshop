@@ -246,52 +246,14 @@ isoConfig
     firewall.enable = false; # Workshop environment
   };
 
-   # WiFi credentials file
-   environment.etc."NetworkManager/workshop-wifi.env" = {
-     text = ''
-       WORKSHOP_SSID="ziegel"
-       WORKSHOP_PSK="1234567890"
-     '';
-     mode = "0600";
-   };
-
-   # WiFi connection setup service
-   systemd.services.workshop-wifi-setup = {
-     description = "Set up workshop WiFi connection";
-     wantedBy = [ "multi-user.target" ];
-     after = [ "NetworkManager.service" ];
-     wants = [ "NetworkManager.service" ];
-     path = with pkgs; [
-       networkmanager
-       coreutils
-       gnugrep
-     ];
-     script = ''
-       # Source credentials
-       source /etc/NetworkManager/workshop-wifi.env
-
-       # Check if connection already exists
-       if nmcli connection show | grep -q "ziegel"; then
-         echo "✅ Workshop WiFi connection already exists"
-         exit 0
-       fi
-
-       echo "📡 Setting up workshop WiFi connection..."
-       # Create WiFi connection
-       if nmcli device wifi connect "$WORKSHOP_SSID" password "$WORKSHOP_PSK" hidden no; then
-         echo "✅ Workshop WiFi connection created and connected"
-       else
-         echo "⚠️ Could not connect to workshop WiFi (network may not be available)"
-         echo "   SSID: $WORKSHOP_SSID"
-         echo "   Manual connection: nmcli device wifi connect '$WORKSHOP_SSID' password '$WORKSHOP_PSK'"
-       fi
-     '';
-     serviceConfig = {
-       Type = "oneshot";
-       User = "root";
-       RemainAfterExit = true;
-     };
-   };
+  # WiFi credentials file
+  environment.etc."NetworkManager/workshop-wifi.env" = {
+    text = ''
+      WORKSHOP_SSID="ziegel"
+      WORKSHOP_PSK="1234567890"
+    '';
+    mode = "0600";
+  };
 
   # DNS Configuration - Wildcard *.workshop.local -> 127.0.0.1
   services.dnsmasq = {
