@@ -328,14 +328,28 @@ isoConfig
       chown workshop:workshop $AUTH_KEYS_FILE
       chmod 600 $AUTH_KEYS_FILE
     '';
-    serviceConfig = {
-      Type = "oneshot";
-      User = "root";
-      RemainAfterExit = true;
-    };
-  };
+     serviceConfig = {
+       Type = "oneshot";
+       User = "root";
+       RemainAfterExit = true;
+     };
+   };
 
-  services.getty.autologinUser = "workshop";
+   # Build timestamp service
+   systemd.services.workshop-build-info = {
+     description = "Write build timestamp to /etc/workshop-build-info";
+     wantedBy = [ "multi-user.target" ];
+     script = ''
+       echo "$(date '+%Y-%m-%d %H:%M:%S')" > /etc/workshop-build-info
+     '';
+     serviceConfig = {
+       Type = "oneshot";
+       User = "root";
+       RemainAfterExit = true;
+     };
+   };
+
+   services.getty.autologinUser = "workshop";
   security.sudo.wheelNeedsPassword = false;
 
   # System Packages
@@ -575,14 +589,17 @@ isoConfig
             export PATH="$PATH:/root/.local/bin"
           fi
 
-          # Check abra installation  
-          if sudo abra >/dev/null 2>&1; then
-            echo "✅ abra ready: $(sudo which abra)"
-            source <(sudo abra autocomplete bash) 2>/dev/null || true
-            echo "✅ abra autocomplete enabled"
-          else
-            echo "⚠️ abra not found! Check: systemctl status workshop-abra-install"
-          fi
+           # Check abra installation
+           if sudo abra >/dev/null 2>&1; then
+             echo "✅ abra ready: $(sudo which abra)"
+             source <(sudo abra autocomplete bash) 2>/dev/null || true
+             echo "✅ abra autocomplete enabled"
+           else
+             echo "⚠️ abra not found! Check: systemctl status workshop-abra-install"
+           fi
+
+           # Build info
+           echo "✅ Workshop ISO - NixOS $(nixos-version) - Built: $(cat /etc/workshop-build-info 2>/dev/null || echo 'unknown')"
 
           # Bash Completion Configuration
           _workshop_completion() {
