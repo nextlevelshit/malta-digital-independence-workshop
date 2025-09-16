@@ -659,13 +659,9 @@ isoConfig
                 COMPREPLY=($(compgen -W "${recipeList}" -- "$cur"))
                 return 0
                 ;;
-              connect)
-                COMPREPLY=($(compgen -W "${serverList}" -- "$cur"))
-                return 0
-                ;;
             esac
           }
-          complete -F _workshop_completion deploy browser connect abra
+          complete -F _workshop_completion deploy browser abra
 
           # Core Workshop Functions
            setup() {

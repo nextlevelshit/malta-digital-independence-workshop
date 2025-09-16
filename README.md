@@ -48,7 +48,7 @@ Pre-configured with:
 - SSH client for cloud access
 - Wildcard DNS resolution (dnsmasq)
 - Terminal-first interface (`desktop` command for GUI)
-- Helper commands: `recipes`, `deploy`, `connect`, `browser`, `help`
+- Helper commands: `recipes`, `deploy`, `browser`, `help`
 - Tab completion for all commands
 
 Build and flash:
@@ -127,7 +127,7 @@ Based on Co-op Cloud with quality scoring:
 - `recipes` - Show complete Co-op Cloud catalog
 - `deploy <app>` - Deploy locally with tab completion
 - `browser [app]` - Launch Firefox [to specific app]
-- `connect <server>` - SSH connection helper (local use only)
+
 - `desktop` - Start GUI session
 - `help` - Show all commands and debug info
 
