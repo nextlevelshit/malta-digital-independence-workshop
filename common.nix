@@ -259,8 +259,8 @@ isoConfig
   # WiFi credentials file
   environment.etc."NetworkManager/workshop-wifi.env" = {
     text = ''
-      WORKSHOP_SSID="ziegel"
-      WORKSHOP_PSK="1234567890"
+      WORKSHOP_SSID="CODE_CRISPIES"
+      WORKSHOP_PSK="scienceinthecity2025"
     '';
     mode = "0600";
   };
@@ -281,7 +281,7 @@ isoConfig
       source /etc/NetworkManager/workshop-wifi.env
 
       # Check if connection already exists
-      if nmcli connection show | grep -q "ziegel"; then
+      if nmcli connection show | grep -q "CODE_CRISPIES"; then
         echo "✅ Workshop WiFi connection already exists"
         exit 0
       fi
