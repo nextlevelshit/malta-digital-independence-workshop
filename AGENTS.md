@@ -27,7 +27,7 @@ This file provides guidelines for AI coding agents operating within this reposit
 
 ## Container Architecture
 
-- **Local VM**: Creates 15 containers (192.168.100.11-25) matching production count
+- **Local VM**: Provides infrastructure to deploy up to 15 containers on demand (matching production count)
 - **Container Names**: hopper, curie, lovelace, noether, hamilton, franklin, johnson, clarke, goldberg, liskov, wing, rosen, shaw, karp, rich
 - **Networking**: Private networking with NAT for local development
 - **DNS**: Local `.local` domain resolution for testing
