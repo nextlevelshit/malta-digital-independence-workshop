@@ -65,7 +65,7 @@ usb-test: usb-build
 	@echo "🧪 Testing USB environment in QEMU..."
 	nix develop --command qemu-system-x86_64 \
 		-cdrom $(ISO_FILE) \
-		-m 2048 \
+		-m 4096 \
 		-enable-kvm \
 		-netdev user,id=net0 \
 		-device virtio-net,netdev=net0 \
