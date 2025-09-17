@@ -2,7 +2,7 @@
 
 Part of the Science in the City Festival - Single-participant learning environments for hands-on Co-op Cloud deployment practice.
 
-[Slides](https://git.dailysh.it/nextlevelshit/malta-slides)
+See the [workshop slides](https://git.dailysh.it/nextlevelshit/malta-slides) for detailed presentation and materials.
 
 ## 🚀 Quick Start
 
