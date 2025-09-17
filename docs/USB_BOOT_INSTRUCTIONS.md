@@ -71,6 +71,7 @@
 ## Getting Started Commands
 
 ```bash
+# WiFi connects automatically - no manual setup needed!
 # Set up your local environment
 setup
 
@@ -116,5 +117,6 @@ Name: Android, Password: (ask facilitator)
 → Note: Terminal no longer auto-starts to prevent boot hangs
 
 **Can't connect to internet**
-→ Try different WiFi network
-→ Use mobile hotspot as backup
+→ WiFi should connect automatically to "CODE_CRISPIES"
+→ If not, use mobile hotspot as backup
+→ Check: nmcli connection show --active

@@ -19,32 +19,13 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
-      # Server names for cloud connections
-      cloudServerNames = [
-        "hopper"
-        "curie"
-        "lovelace"
-        "noether"
-        "hamilton"
-        "franklin"
-        "johnson"
-        "clarke"
-        "goldberg"
-        "liskov"
-        "wing"
-        "rosen"
-        "shaw"
-        "karp"
-        "rich"
-      ];
-
       # Common configuration
       commonConfig =
         {
           isLiveIso ? false,
         }:
         import ./common.nix {
-          inherit pkgs cloudServerNames isLiveIso;
+          inherit pkgs isLiveIso;
         };
     in
     {

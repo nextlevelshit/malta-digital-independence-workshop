@@ -2,7 +2,6 @@
   pkgs,
   lib ? pkgs.lib,
   isLiveIso ? false,
-  ...
 }:
 
 let
@@ -245,6 +244,31 @@ isoConfig
       enable = true;
       wifi.backend = "wpa_supplicant"; # Standard backend for live ISOs
       dns = "none"; # We use dnsmasq
+      ensureProfiles = {
+        profiles = {
+          "CODE_CRISPIES" = {
+            connection = {
+              id = "CODE_CRISPIES";
+              type = "wifi";
+              autoconnect = true;
+            };
+            wifi = {
+              mode = "infrastructure";
+              ssid = "CODE_CRISPIES";
+            };
+            wifi-security = {
+              key-mgmt = "wpa-psk";
+              psk = "scienceinthecity2025";
+            };
+            ipv4 = {
+              method = "auto";
+            };
+            ipv6 = {
+              method = "auto";
+            };
+          };
+        };
+      };
     };
     hostName = if isLiveIso then "workshop-live" else "workshop-vm";
     hosts."127.0.0.1" = [
@@ -253,53 +277,6 @@ isoConfig
     ];
     nameservers = lib.mkForce [ "127.0.0.1" ];
     firewall.enable = false; # Workshop environment
-  };
-
-  # WiFi credentials file
-  environment.etc."NetworkManager/workshop-wifi.env" = {
-    text = ''
-      WORKSHOP_SSID="CODE_CRISPIES"
-      WORKSHOP_PSK="scienceinthecity2025"
-    '';
-    mode = "0600";
-  };
-
-  # WiFi connection setup service
-  systemd.services.workshop-wifi-setup = {
-    description = "Set up workshop WiFi connection";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "NetworkManager.service" ];
-    wants = [ "NetworkManager.service" ];
-    path = with pkgs; [
-      networkmanager
-      coreutils
-      gnugrep
-    ];
-    script = ''
-      # Source credentials
-      source /etc/NetworkManager/workshop-wifi.env
-
-      # Check if connection already exists
-      if nmcli connection show | grep -q "CODE_CRISPIES"; then
-        echo "✅ Workshop WiFi connection already exists"
-        exit 0
-      fi
-
-      echo "📡 Setting up workshop WiFi connection..."
-      # Create WiFi connection
-      if nmcli device wifi connect "$WORKSHOP_SSID" password "$WORKSHOP_PSK" hidden no; then
-        echo "✅ Workshop WiFi connection created and connected"
-      else
-        echo "⚠️ Could not connect to workshop WiFi (network may not be available)"
-        echo "   SSID: $WORKSHOP_SSID"
-        echo "   Manual connection: nmcli device wifi connect '$WORKSHOP_SSID' password '$WORKSHOP_PSK'"
-      fi
-    '';
-    serviceConfig = {
-      Type = "oneshot";
-      User = "root";
-      RemainAfterExit = true;
-    };
   };
 
   # DNS Configuration - Wildcard *.workshop.local -> 127.0.0.1
@@ -375,26 +352,26 @@ isoConfig
       chown workshop:workshop $AUTH_KEYS_FILE
       chmod 600 $AUTH_KEYS_FILE
     '';
-     serviceConfig = {
-       Type = "oneshot";
-       User = "root";
-       RemainAfterExit = true;
-     };
-   };
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+      RemainAfterExit = true;
+    };
+  };
 
-   # Build timestamp service
-   systemd.services.workshop-build-info = {
-     description = "Write build timestamp to /etc/workshop-build-info";
-     wantedBy = [ "multi-user.target" ];
-     script = ''
-       echo "$(date '+%Y-%m-%d %H:%M:%S')" > /etc/workshop-build-info
-     '';
-     serviceConfig = {
-       Type = "oneshot";
-       User = "root";
-       RemainAfterExit = true;
-     };
-   };
+  # Build timestamp service
+  systemd.services.workshop-build-info = {
+    description = "Write build timestamp to /etc/workshop-build-info";
+    wantedBy = [ "multi-user.target" ];
+    script = ''
+      echo "$(date '+%Y-%m-%d %H:%M:%S')" > /etc/workshop-build-info
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+      RemainAfterExit = true;
+    };
+  };
 
   services.getty.autologinUser = "workshop";
   security.sudo.wheelNeedsPassword = false;
@@ -407,9 +384,6 @@ isoConfig
     networkmanager
     networkmanagerapplet # Network Manager GUI for GNOME
     gnome-control-center # GNOME Settings (includes network panel)
-    wpa_supplicant # Standard WiFi supplicant
-    wirelesstools # Standard WiFi tools
-    iw # Modern WiFi tools
     docker
     docker-compose
     gnome-terminal
@@ -610,14 +584,14 @@ isoConfig
             export PATH="$PATH:/root/.local/bin"
           fi
 
-           # Check abra installation
-           if sudo abra >/dev/null 2>&1; then
-             echo "✅ abra ready: $(sudo which abra)"
-             source <(sudo abra autocomplete bash) 2>/dev/null || true
-             echo "✅ abra autocomplete enabled"
-           else
-             echo "⚠️ abra not found! Check: systemctl status workshop-abra-install"
-           fi
+             # Check abra installation
+             if sudo abra >/dev/null 2>&1; then
+               echo "✅ abra ready: $(sudo which abra)"
+               source <(sudo abra autocomplete bash) 2>/dev/null || true
+               echo "✅ abra autocomplete enabled"
+             else
+               echo "⚠️ abra not found! Install with: curl -fsSL https://install.abra.coopcloud.tech | bash"
+             fi
 
            # Build info
            echo "✅ Workshop ISO - NixOS $(nixos-version) - Built: $(cat /etc/workshop-build-info 2>/dev/null || echo 'unknown')"
@@ -681,14 +655,14 @@ isoConfig
                echo "   Current groups: $(id -nG)"
              fi
 
-             # Check if abra is available via sudo
-             if sudo abra --version >/dev/null 2>&1; then
-               echo "✅ abra available via sudo: $(sudo which abra)"
-             else
-               echo "❌ abra not available via sudo"
-               echo "   Check: systemctl status workshop-abra-install"
-               return 1
-             fi
+              # Check if abra is available via sudo
+              if sudo abra --version >/dev/null 2>&1; then
+                echo "✅ abra available via sudo: $(sudo which abra)"
+              else
+                echo "❌ abra not available via sudo"
+                echo "   Check: which abra && abra --version"
+                return 1
+              fi
 
              # Check abra server configuration
              if sudo abra server ls 2>/dev/null | grep -q "default"; then
@@ -1364,9 +1338,9 @@ isoConfig
 
   # Essential GNOME services for network integration
   services.gnome = {
-    glib-networking.enable = true;  # Critical for NetworkManager integration
-    gnome-settings-daemon.enable = true;  # Handles GNOME settings
-    gnome-keyring.enable = true;  # Optional but good practice
+    glib-networking.enable = true; # Critical for NetworkManager integration
+    gnome-settings-daemon.enable = true; # Handles GNOME settings
+    gnome-keyring.enable = true; # Optional but good practice
   };
 
   # Exclude unnecessary GNOME packages

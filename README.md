@@ -44,6 +44,7 @@ browser wordpress          # Open directly in Firefox
 ## 💾 USB Environment
 
 Pre-configured with:
+- **Automatic WiFi connection** to workshop network
 - Docker Swarm + abra installation
 - SSH client for cloud access
 - Wildcard DNS resolution (dnsmasq)
@@ -148,9 +149,9 @@ browser <TAB>              # Shows deployed applications
 ## 🔧 Prerequisites
 
 - Nix with flakes enabled
-- SSH key at `~/.ssh/id_ed25519.pub`
 - 2GB+ RAM for VM testing
 - USB drive (8GB+) for workshop distribution
+- SSH key at `~/.ssh/id_ed25519.pub` (for cloud deployment only)
 
 ## 🛠️ Development Tools
 
@@ -171,10 +172,13 @@ make clean         # Clean build artifacts (./build/ and ./result/)
 ## 🔍 Troubleshooting
 
 ```bash
+# Check WiFi connection (should connect automatically)
+nmcli connection show --active
+
 # Check DNS resolution
 dig @127.0.0.1 test.workshop.local
 
-# Check running services  
+# Check running services
 docker service ls
 
 # Check DNS service

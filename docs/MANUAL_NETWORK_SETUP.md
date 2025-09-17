@@ -79,11 +79,15 @@ echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
 
 ## Workshop-Specific Network Setup
 
-### Connect to Workshop WiFi
+### Workshop WiFi (Automatic)
+
+The workshop environment automatically connects to the "CODE_CRISPIES" WiFi network using declarative NetworkManager configuration. No manual setup is required.
+
+If you need to connect to a different network:
 
 ```bash
 # Connect to workshop hotspot (if available)
-nmcli device wifi connect "ziegel" password "1234567890"
+nmcli device wifi connect "CODE_CRISPIES" password "scienceinthecity2025"
 ```
 
 ### Configure Local DNS Resolution
@@ -101,17 +105,17 @@ nslookup traefik.workshop.local 127.0.0.1
 
 When internet is not available during workshop setup:
 
-1. **Configure Network Manually**
-   ```bash
-   # Use one of the methods above to get network connectivity
-   nmcli device wifi connect "YourNetwork" password "YourPassword"
-   ```
+1. **Network Connects Automatically**
+    ```bash
+    # WiFi connects automatically to "CODE_CRISPIES" on boot
+    # Check connection: nmcli connection show --active
+    ```
 
 2. **Skip Online Dependencies**
-   ```bash
-   # The setup script will work offline once network is configured
-   setup
-   ```
+    ```bash
+    # The setup script will work offline once network is configured
+    setup
+    ```
 
 3. **Manual abra Installation** (if needed)
    ```bash
