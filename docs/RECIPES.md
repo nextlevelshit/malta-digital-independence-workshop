@@ -91,6 +91,7 @@
 | mailman3 | 3 | The GNU Mailing List Management System | [https://recipes.coopcloud.tech/mailman3](https://recipes.coopcloud.tech/mailman3) |
 | mailu | 3 | A simple yet full-featured mail server | [https://recipes.coopcloud.tech/mailu](https://recipes.coopcloud.tech/mailu) |
 | mastodon | 3 | A free, open-source social network server | [https://recipes.coopcloud.tech/mastodon](https://recipes.coopcloud.tech/mastodon) |
+| matrix-synapse | 3 | A Matrix homeserver written in Python | [https://recipes.coopcloud.tech/matrix-synapse](https://recipes.coopcloud.tech/matrix-synapse) |
 | matomo | 3 | A Google Analytics alternative that protects your data and your customers' privacy | [https://recipes.coopcloud.tech/matomo](https://recipes.coopcloud.tech/matomo) |
 | mattermost | 3 | Secure collaboration platform | [https://recipes.coopcloud.tech/mattermost](https://recipes.coopcloud.tech/mattermost) |
 | mattermost-lts | 3 | Long-term support for Mattermost | [https://recipes.coopcloud.tech/mattermost-lts](https://recipes.coopcloud.tech/mattermost-lts) |
@@ -115,6 +116,7 @@
 | nextcloud | 5 | A safe home for all your data | [https://recipes.coopcloud.tech/nextcloud](https://recipes.coopcloud.tech/nextcloud) |
 | nitter | 3 | An alternative Twitter front-end | [https://recipes.coopcloud.tech/nitter](https://recipes.coopcloud.tech/nitter) |
 | nocodb | 3 | An open source Airtable alternative | [https://recipes.coopcloud.tech/nocodb](https://recipes.coopcloud.tech/nocodb) |
+| node-red | 3 | Low-code programming for event-driven applications | [https://recipes.coopcloud.tech/node-red](https://recipes.coopcloud.tech/node-red) |
 | notea | 3 | A self-hosted note-taking app | [https://recipes.coopcloud.tech/notea](https://recipes.coopcloud.tech/notea) |
 | ntfy | 3 | A simple HTTP-based pub-sub notification service | [https://recipes.coopcloud.tech/ntfy](https://recipes.coopcloud.tech/ntfy) |
 | oasis | 3 | A tool for building and managing online communities | [https://recipes.coopcloud.tech/oasis](https://recipes.coopcloud.tech/oasis) |

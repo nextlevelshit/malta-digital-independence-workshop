@@ -83,6 +83,8 @@ The VM simulates the USB experience with identical configuration and commands.
 
 ## 📚 Complete Recipe Catalog
 
+For the complete list of all recipes, see [RECIPES.md](docs/RECIPES.md)
+
 Based on Co-op Cloud with quality scoring:
 
 ### ⭐ Tier 1 - Production Ready (Score 5)
@@ -153,6 +155,11 @@ browser <TAB>              # Shows deployed applications
 - 2GB+ RAM for VM testing
 - USB drive (8GB+) for workshop distribution
 - SSH key at `~/.ssh/id_ed25519.pub` (for cloud deployment only)
+
+## 📖 Documentation
+
+- [Manual Network Setup](docs/MANUAL_NETWORK_SETUP.md)
+- [USB Boot Instructions](docs/USB_BOOT_INSTRUCTIONS.md)
 
 ## 🛠️ Development Tools
 
