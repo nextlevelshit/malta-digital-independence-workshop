@@ -78,6 +78,9 @@ setup
 # See available app recipes
 recipes
 
+# If abra installation failed (rare case)
+install
+
 # Get help
 help
 ```
@@ -120,3 +123,7 @@ Name: Android, Password: (ask facilitator)
 → WiFi should connect automatically to "CODE_CRISPIES"
 → If not, use mobile hotspot as backup
 → Check: nmcli connection show --active
+
+**Abra not working**
+→ Run: install
+→ Check: sudo systemctl status workshop-abra-install

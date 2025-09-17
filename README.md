@@ -128,6 +128,7 @@ Based on Co-op Cloud with quality scoring:
 - `recipes` - Show complete Co-op Cloud catalog
 - `deploy <app>` - Deploy locally with tab completion
 - `browser [app]` - Launch Firefox [to specific app]
+- `install` - Repair abra installation if needed
 
 - `desktop` - Start GUI session
 - `help` - Show all commands and debug info
@@ -174,6 +175,15 @@ make clean         # Clean build artifacts (./build/ and ./result/)
 ```bash
 # Check WiFi connection (should connect automatically)
 nmcli connection show --active
+
+# Check abra installation
+sudo abra --version
+
+# Repair abra installation
+install
+
+# Check abra service status
+sudo systemctl status workshop-abra-install
 
 # Check DNS resolution
 dig @127.0.0.1 test.workshop.local

@@ -489,12 +489,12 @@ isoConfig
     };
   };
 
-  # Abra Installation Service (System-wide)
+  # Abra Installation Service (System-wide) with Enhanced Verification
   systemd.services.workshop-abra-install = {
-    description = "Install abra CLI system-wide";
+    description = "Install abra CLI system-wide with retry logic and proper verification";
     wantedBy = [ "multi-user.target" ];
-    after = [ "workshop-system-setup.service" ];
-    wants = [ "workshop-system-setup.service" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
     path = with pkgs; [
       bash
       wget
@@ -509,38 +509,69 @@ isoConfig
     ];
 
     script = ''
-      # Set proper environment
+      # Enhanced installation with proper verification
       export TERM=xterm-256color
       export HOME=/root
 
-      # Check if abra is already installed
-      if [ -x "/root/.local/bin/abra" ]; then
-        echo "✅ abra already installed"
-        /root/.local/bin/abra --version
+      # Check if abra is already properly installed (CORRECTED VERIFICATION)
+      if sudo abra --version >/dev/null 2>&1; then
+        echo "✅ abra already installed and functional"
         exit 0
       fi
 
-      echo "🚀 Installing abra system-wide..."
+      # Wait for actual internet connectivity
+      echo "🌐 Waiting for internet connectivity..."
+      for i in {1..30}; do
+        if curl -s --max-time 5 https://abra.coopcloud.tech >/dev/null 2>&1; then
+          echo "✅ Internet connectivity confirmed"
+          break
+        fi
+        if [ $i -eq 30 ]; then
+          echo "❌ No internet connectivity after 60 seconds"
+          exit 1
+        fi
+        sleep 2
+      done
 
-      # Install to /usr/local/bin (default behavior)
-      curl -fsSL https://install.abra.coopcloud.tech | bash
+      # Attempt installation with retry logic
+      for attempt in {1..3}; do
+        echo "🚀 Installing abra (attempt $attempt/3)..."
 
-      # Add to bashrc only once
-      if ! grep -q "/root/.local/bin" /root/.bashrc 2>/dev/null; then
-        echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.bashrc
-        echo "✅ Added /root/.local/bin to PATH in /root/.bashrc"
-      fi
+        if curl -fsSL https://install.abra.coopcloud.tech | bash; then
+          # Verify installation success using CORRECT check method
+          if sudo abra --version >/dev/null 2>&1; then
+            echo "✅ abra installed successfully"
 
-      # Verify
-      if [ -x "/root/.local/bin/abra" ]; then
-        echo "✅ abra installed to /root/.local/bin/abra"
-      fi
+            # Add to bashrc only once
+            if ! grep -q "/root/.local/bin" /root/.bashrc 2>/dev/null; then
+              echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.bashrc
+              echo "✅ Added /root/.local/bin to PATH in /root/.bashrc"
+            fi
+
+            exit 0
+          else
+            echo "⚠️ Installation script completed but abra not functional"
+          fi
+        else
+          echo "❌ Installation attempt $attempt failed"
+        fi
+
+        if [ $attempt -lt 3 ]; then
+          echo "⏳ Retrying in 10 seconds..."
+          sleep 10
+        fi
+      done
+
+      echo "❌ abra installation failed after 3 attempts"
+      exit 1
     '';
 
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
       User = "root";
+      Restart = "on-failure";
+      RestartSec = "30s";
       Environment = [
         "TERM=xterm-256color"
         "HOME=/root"
@@ -1172,9 +1203,35 @@ isoConfig
                 echo "❌ No GUI session. Run 'desktop' first"
                 echo "🌐 Target was: $target_url"
               fi
-            }
-        
-          recipes() {
+             }
+
+           install() {
+             echo "🔄 Checking and repairing abra installation..."
+
+             # Use the CORRECT check method (matches service verification)
+             if sudo abra --version >/dev/null 2>&1; then
+               echo "✅ abra is already installed and functional"
+               return 0
+             fi
+
+             echo "🔄 Restarting abra installation service..."
+             sudo systemctl restart workshop-abra-install
+
+             # Monitor installation progress
+             echo "📊 Monitoring installation..."
+             for i in {1..30}; do
+               if sudo abra --version >/dev/null 2>&1; then
+                 echo "✅ abra installation completed successfully!"
+                 return 0
+               fi
+               sleep 2
+             done
+
+             echo "❌ Installation still not complete. Check status:"
+             echo "   sudo systemctl status workshop-abra-install"
+           }
+
+           recipes() {
             echo "📚 Complete Co-op Cloud Recipe Catalog:"
             echo ""
             echo "⭐ Tier 1 - Production Ready: gitea mealie nextcloud"

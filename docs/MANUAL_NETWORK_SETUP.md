@@ -119,8 +119,15 @@ When internet is not available during workshop setup:
 
 3. **Manual abra Installation** (if needed)
    ```bash
-   # Download abra binary manually on another machine and transfer via USB
-   # Or use a local package repository
+   # Use the install command (preferred)
+   install
+
+   # Or manually restart the service
+   sudo systemctl restart workshop-abra-install
+
+   # Check installation status
+   sudo systemctl status workshop-abra-install
+   sudo abra --version
    ```
 
 4. **Deploy Local Services**
@@ -223,11 +230,14 @@ ping 8.8.8.8
 # Test DNS
 nslookup google.com
 
-# Test workshop services
-curl http://traefik.workshop.local
+# Test abra installation
+sudo abra --version
 
 # Test abra connectivity
 sudo abra server ls
+
+# Test workshop services
+curl http://traefik.workshop.local
 ```
 
 ## Getting Help
